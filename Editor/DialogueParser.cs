@@ -12,12 +12,16 @@ namespace GabbyDialogue
         private class ParserState
         {
             public string line;
-            public int indentLevel;
+            public int lineNumber = 0;
+            public int indentLevel = 0;
             public StreamReader stream;
+            public IDialogueBuilder builder;
+            public string lastCharacter;
+            public bool isParsingDialogue = false;
         }
 
-        private static Dictionary<char, Action<ParserState>> lineHandlerMap = new Dictionary<char, Action<ParserState>> {
-            {'[', DialogParser.ParseDialogueBlockDefinition},
+        private static Dictionary<char, Func<ParserState, bool>> lineHandlerMap = new Dictionary<char, Func<ParserState, bool>> {
+            {'[', DialogParser.ParseDialogueDefinition},
             {'(', DialogParser.ParseCharacterDialogue},
             {'-', DialogParser.ParseSequentialDialogue},
             {'+', DialogParser.ParseContinuedDialogue},
@@ -30,19 +34,15 @@ namespace GabbyDialogue
         private static string regexValidName = @"[\w-]+(\s+[\w-]+)*";
         private static string regexEndsWithCommentOrNewline = @"\s*(//(.*)|$)";
 
-        public static GabbyDialogueAsset ParseGabbyDialogueScript(string assetPath)
+        public static bool ParseGabbyDialogueScript(string assetPath, IDialogueBuilder builder)
         {
-            GabbyDialogueAsset asset = ScriptableObject.CreateInstance<GabbyDialogueAsset>();
-
-
-            List<Dialogue> dialogues = new List<Dialogue>();
-
             try
             {
                 using (StreamReader stream = new StreamReader(assetPath))
                 {
                     ParserState state = new ParserState();
                     state.stream = stream;
+                    state.builder = builder;
 
                     // TODO parse metadata
 
@@ -51,33 +51,33 @@ namespace GabbyDialogue
                     {
                         state.indentLevel = GetIndentLevel(rawLine);
                         state.line = rawLine.Trim();
+                        state.lineNumber++;
 
                         if (state.line.Length == 0)
                         {
                             continue;
                         }
-                        
-                        if (!lineHandlerMap.ContainsKey(state.line[0]))
+
+                        if ((lineHandlerMap.ContainsKey(state.line[0]) && lineHandlerMap[state.line[0]](state))
+                           || state.line.StartsWith("//")
+                           || ParseKeyword(state))
                         {
-                            if (!ParseKeyword(state))
-                            {
-                                Debug.LogError($"Error while parsing Gabby dialogue script: {assetPath}\nUnrecognized symbols on line ${-1}: {state.line}\nMake sure the line begins with a symbol recognized by Gabby.");
-                            }                  
                             continue;
                         }
-
-                        lineHandlerMap[state.line[0]](state);
+                        Debug.LogError($"Error while parsing Gabby dialogue script: {assetPath}\nUnrecognized symbols on line ${state.lineNumber}: {state.line}\nMake sure the line begins with a symbol recognized by Gabby.");
                     }
+
+                    state.builder.OnDialogueDefinitionEnd();
                 }
             }
             catch (Exception e)
             {
                 Debug.LogError($"Could not parse gabby dialogue script: {assetPath}");
                 Debug.LogError(e.Message);
-                return asset;
+                return false;
             }
 
-            return asset;
+            return true;
         }
 
         private static int GetIndentLevel(string line)
@@ -92,26 +92,34 @@ namespace GabbyDialogue
             return 0;
         }
 
-        private static void ParseDialogueBlockDefinition(ParserState state)
+        private static bool ParseDialogueDefinition(ParserState state)
         {
-            string validateDialogueBlock = @"^\s*\["
-                                         + @"(?<c>" + regexValidName + @")"
-                                         + @"."
-                                         + @"(?<d>" + regexValidName + @")"
-                                         + @"\]" + regexEndsWithCommentOrNewline;
+            string validateDialogueDefinition = @"^\s*\["
+                                              + @"(?<c>" + regexValidName + @")"
+                                              + @"."
+                                              + @"(?<d>" + regexValidName + @")"
+                                              + @"\]" + regexEndsWithCommentOrNewline;
 
-            Match match = Regex.Match(state.line, validateDialogueBlock);
+            Match match = Regex.Match(state.line, validateDialogueDefinition);
             if (!match.Success)
             {
-                Debug.LogError("blah");
+                return false;
             }
 
             string characterName = match.Groups["c"].Value;
             string dialogueName = match.Groups["d"].Value;
-            Debug.Log($"{characterName} - {dialogueName}");
+
+            if (state.isParsingDialogue)
+            {
+                state.builder.OnDialogueDefinitionEnd();
+            }
+
+            state.isParsingDialogue = true;
+            state.lastCharacter = characterName;
+            return state.builder.OnDialogueDefinition(characterName, dialogueName);
         }
 
-        private static void ParseCharacterDialogue(ParserState state)
+        private static bool ParseCharacterDialogue(ParserState state)
         {
             string validateCharacterDialogue = @"^\s*\("
                                              + @"(?<c>" + regexValidName + @")"
@@ -121,64 +129,67 @@ namespace GabbyDialogue
             Match match = Regex.Match(state.line, validateCharacterDialogue);
             if (!match.Success)
             {
-                Debug.LogError("blah");
+                return false;
             }
 
             string characterName = match.Groups["c"].Value;
             string text = match.Groups["t"].Value;
-            Debug.Log($"({characterName}) {text}");
+
+            state.lastCharacter = characterName;
+            return state.builder.OnDialogueLine(characterName, text);
         }
 
-        private static void ParseSequentialDialogue(ParserState state)
+        private static bool ParseSequentialDialogue(ParserState state)
         {
             string validateSequentialDialogue = @"^\s*\-\s+"
                                               + @"(?<t>[^//]*)"
                                               + regexEndsWithCommentOrNewline;
-            
+
             Match match = Regex.Match(state.line, validateSequentialDialogue);
             if (!match.Success)
             {
-                Debug.LogError("blah");
+                return false;
             }
 
             string text = match.Groups["t"].Value;
-            Debug.Log($"- {text}");
+            return state.builder.OnDialogueLine(state.lastCharacter, text);
         }
 
-        private static void ParseContinuedDialogue(ParserState state)
+        private static bool ParseContinuedDialogue(ParserState state)
         {
             string validateContinuedDialogue = @"^\s*\+\s+"
                                               + @"(?<t>[^//]*)"
                                               + regexEndsWithCommentOrNewline;
-            
+
             Match match = Regex.Match(state.line, validateContinuedDialogue);
             if (!match.Success)
             {
-                Debug.LogError("blah");
+                return false;
             }
 
             string text = match.Groups["t"].Value;
-            Debug.Log($"+ {text}");
+            return state.builder.OnContinuedDialogue(state.lastCharacter, text);
         }
 
-        private static void ParseOption(ParserState state)
+        private static bool ParseOption(ParserState state)
         {
             // TODO check indentation and determine block to add to
             string validateOption = @"^\s*\:\s+"
                                   + @"(?<t>[^//]*)"
                                   + regexEndsWithCommentOrNewline;
-            
+
             Match match = Regex.Match(state.line, validateOption);
             if (!match.Success)
             {
-                Debug.LogError("blah");
+                return false;
             }
 
             string text = match.Groups["t"].Value;
-            Debug.Log($": {text}");
+            // TODO option callback
+            return true;
         }
 
-        private static void ParseAction(ParserState state)
+        private static bool ParseAction(ParserState state)
         {
             Match match;
 
@@ -190,8 +201,8 @@ namespace GabbyDialogue
             if (match.Success)
             {
                 string jumpPoint = match.Groups["j"].Value;
-                Debug.Log($">> {jumpPoint}");
-                return;
+                // TODO jump callback
+                return true;
             }
 
             string validateAction = @"^\s*\>\s+"
@@ -202,16 +213,17 @@ namespace GabbyDialogue
             if (match.Success)
             {
                 string t = match.Groups["t"].Value;
-                Debug.Log($"> ${t}");
-                return;
+                // TODO action callback
+                return true;
             }
 
-            Debug.LogError("blah");
+            return false;
         }
 
-        private static void ParseProperties(ParserState state)
+        private static bool ParseProperties(ParserState state)
         {
             Debug.Log($"Properties not yet supported, ignoring.");
+            return true;
         }
 
         private static bool ParseKeyword(ParserState state)
@@ -223,7 +235,7 @@ namespace GabbyDialogue
             match = Regex.Match(state.line, validateEnd);
             if (match.Success)
             {
-                Debug.Log("end");
+                state.builder.OnEndDialogue();
                 return true;
             }
 

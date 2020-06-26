@@ -12,7 +12,16 @@ namespace GabbyDialogue
     {
         public override void OnImportAsset(AssetImportContext ctx)
         {
-            GabbyDialogueAsset asset = DialogParser.ParseGabbyDialogueScript(ctx.assetPath);
+            GabbyDialogueAsset asset = ScriptableObject.CreateInstance<GabbyDialogueAsset>();
+
+            DialogueBuilder builder = new DialogueBuilder();
+            bool success = DialogParser.ParseGabbyDialogueScript(ctx.assetPath, builder);
+            if (success)
+            {
+                // Add the dialogues if parsed successfully
+                // We still create the scriptable object so it appears in the hierarchy
+                asset.dialogues = builder.Dialogues.ToArray();
+            }         
 
             ctx.AddObjectToAsset("gabbyDialogue", asset);
             ctx.SetMainObject(asset);
