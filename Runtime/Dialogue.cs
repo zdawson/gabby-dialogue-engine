@@ -3,55 +3,50 @@ using UnityEngine;
 
 namespace GabbyDialogue
 {
+    
+    public enum LineType
+    {
+        DIALOGUE, // [char, text]
+        CONTINUED_DIALOGUE, // [text]
+        OPTION, // [opt, jump, opt, jump, ...]
+        ACTION, // [func, param, ...]
+        JUMP, // [target]
+        END // nothing
+    }
 
     [Serializable]
     public class DialogueLine
     {
         [SerializeField]
-        private string characterName;
+        private LineType lineType;
         [SerializeField]
-        private string text;
-        [SerializeField]
-        public bool isContinuation = false;
+        private string[] lineData;
 
-        public DialogueLine(string characterName, string text)
+        public DialogueLine(LineType lineType, string[] lineData)
         {
-            this.characterName = characterName;
-            this.text = text;
+            this.lineType = lineType;
+            this.lineData = lineData;
         }
 
-        public string CharacterName => characterName;
-        public string Text => text;
-    }
-
-    [Serializable]
-    public class OptionLine
-    {
-        [SerializeField]
-        private string[] options;
-        [SerializeField]
-        private DialogueBlock[] dialogueBlocks;
-
-        public OptionLine()
-        {
-            
-        }
-
-        public string[] Options => options;
-        public DialogueBlock[] DialogueBlocks => dialogueBlocks;
+        public LineType LineType => lineType;
+        public string[] LineData => lineData;
     }
 
     [Serializable]
     public class DialogueBlock
     {
         [SerializeField]
+        private int blockID;
+        [SerializeField]
         private DialogueLine[] lines;
 
-        public DialogueBlock(DialogueLine[] lines)
+        public DialogueBlock(int blockID, DialogueLine[] lines)
         {
+            this.blockID = blockID;
             this.lines = lines;
         }
 
+        public int BlockID => blockID;
         public DialogueLine[] Lines => lines;
     }
 
@@ -63,19 +58,28 @@ namespace GabbyDialogue
         [SerializeField]
         private string dialogueName;
         [SerializeField]
-        private DialogueBlock dialogueBlock;
+        private DialogueBlock[] dialogueBlocks;
 
         // TODO properties? How to handle arrays, objects?
 
-        public Dialogue(string characterName, string dialogueName, DialogueBlock dialogueBlock)
+        public Dialogue(string characterName, string dialogueName, DialogueBlock[] dialogueBlocks)
         {
             this.characterName = characterName;
             this.dialogueName = dialogueName;
-            this.dialogueBlock = dialogueBlock;
+            this.dialogueBlocks = dialogueBlocks;
+        }
+
+        public DialogueBlock GetMainDialogueBlock()
+        {
+            return GetDialogueBlock(0);
+        }
+
+        public DialogueBlock GetDialogueBlock(int blockID)
+        {
+            return dialogueBlocks[blockID];
         }
 
         public string DialogueName => dialogueName;
         public string CharacterName => characterName;
-        public DialogueBlock DialogueBlock => dialogueBlock;
     }
 }
