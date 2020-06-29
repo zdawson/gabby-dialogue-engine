@@ -10,7 +10,7 @@ namespace GabbyDialogue
         {
             public string characterName;
             public string dialogueName;
-            public Stack<DialogueBlockData> blocks = new Stack<DialogueBlockData>();
+            public List<DialogueBlockData> blocks = new List<DialogueBlockData>();
 
             public DialogueData(string characterName, string dialogueName)
             {
@@ -19,23 +19,29 @@ namespace GabbyDialogue
             }
         }
 
-        private class OptionsData
+        private class OptionsBlockData
         {
             public List<(string, DialogueBlockData)> options = new List<(string, DialogueBlockData)>();
         }
 
         private class DialogueBlockData
         {
+            public int blockID;
             public List<DialogueLine> lines = new List<DialogueLine>();
         }
 
         private List<Dialogue> dialogues = new List<Dialogue>();
         private DialogueData curDialogue;
         private Stack<DialogueBlockData> dialogueBlockStack = new Stack<DialogueBlockData>();
+        private Stack<OptionsBlockData> optionsBlockStack = new Stack<OptionsBlockData>();
+        private int nextBlockID = 0;
 
         public bool OnDialogueDefinition(string characterName, string dialogueName)
         {
+            nextBlockID = 0;
+
             DialogueBlockData block = new DialogueBlockData();
+            block.blockID = nextBlockID++;
             dialogueBlockStack.Push(block);
 
             DialogueData dialogueData = new DialogueData(characterName, dialogueName);
@@ -58,29 +64,70 @@ namespace GabbyDialogue
             return true;
         }
 
-        public bool OnEndDialogue()
+        public bool OnOptionsBegin()
         {
-            // TODO check indentation
+            OptionsBlockData options = new OptionsBlockData();
+            optionsBlockStack.Push(options);
+            return true;
+        }
+
+        public bool OnOption(string text)
+        {
+            // Close the previous option's dialogue block
+            OptionsBlockData optionsBlock = optionsBlockStack.Peek();
+            if (optionsBlock.options.Count > 0)
+            {
+                dialogueBlockStack.Pop();
+            }
+            
+            DialogueBlockData block = new DialogueBlockData();
+            block.blockID = nextBlockID++;
+            dialogueBlockStack.Push(block);
+
+            optionsBlockStack.Peek().options.Add((text, block));
+
+            return true;
+        }
+
+        public bool OnOptionsEnd()
+        {
+            // Close the last option's dialogue block
+            dialogueBlockStack.Pop();
+
+            OptionsBlockData optionsBlock = optionsBlockStack.Pop();
+
+            string[] lineData = new string[optionsBlock.options.Count * 2];
+            int i = 0;
+            foreach ((string text, DialogueBlockData block) in optionsBlock.options)
+            {
+                lineData[i++] = text;
+                lineData[i++] = $"{block.blockID}";
+                curDialogue.blocks.Add(block);
+            }
+
+            DialogueLine line = new DialogueLine(LineType.OPTION, lineData);
+            dialogueBlockStack.Peek().lines.Add(line);
+
+            return true;
+        }
+
+        public bool OnEnd()
+        {
             DialogueLine line = new DialogueLine(LineType.END, new string[0]);
             dialogueBlockStack.Peek().lines.Add(line);
-            curDialogue.blocks.Push(dialogueBlockStack.Pop());
             return true;
         }
 
         public void OnDialogueDefinitionEnd()
         {
-            // Add an end line if it wasn't provided
-            // if ()
-            // {
-            //     OnEndDialogue();
-            // }
+            // TODO Add an end line to the main block if it wasn't 
+            curDialogue.blocks.Add(dialogueBlockStack.Pop());
 
+            curDialogue.blocks.Sort((a, b) => a.blockID - b.blockID);
             List<DialogueBlock> dialogueBlocks = new List<DialogueBlock>();
-            int id = 0;
-            while (curDialogue.blocks.Count > 0)
+            foreach (DialogueBlockData blockData in curDialogue.blocks)
             {
-                DialogueBlockData blockData = curDialogue.blocks.Pop();
-                dialogueBlocks.Add(new DialogueBlock(id++, blockData.lines.ToArray()));
+                dialogueBlocks.Add(new DialogueBlock(blockData.blockID, blockData.lines.ToArray()));
             }
             
             Dialogue dialogue = new Dialogue(curDialogue.characterName, curDialogue.dialogueName, dialogueBlocks.ToArray());

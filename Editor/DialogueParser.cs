@@ -11,13 +11,17 @@ namespace GabbyDialogue
     {
         private class ParserState
         {
+            public string rawLine;
             public string line;
             public int lineNumber = 0;
             public int indentLevel = 0;
+            public bool blockReadLine = false;
             public StreamReader stream;
             public IDialogueBuilder builder;
             public string lastCharacter;
             public bool isParsingDialogue = false;
+            public string assetPath;
+            
         }
 
         private static Dictionary<char, Func<ParserState, bool>> lineHandlerMap = new Dictionary<char, Func<ParserState, bool>> {
@@ -25,7 +29,7 @@ namespace GabbyDialogue
             {'(', DialogParser.ParseCharacterDialogue},
             {'-', DialogParser.ParseSequentialDialogue},
             {'+', DialogParser.ParseContinuedDialogue},
-            {':', DialogParser.ParseOption},
+            {':', DialogParser.ParseOptionBlock},
             {'>', DialogParser.ParseAction},
             {'{', DialogParser.ParseProperties}
         };
@@ -43,34 +47,22 @@ namespace GabbyDialogue
                     ParserState state = new ParserState();
                     state.stream = stream;
                     state.builder = builder;
+                    state.assetPath = assetPath;
 
                     // TODO parse metadata
 
-                    string rawLine;
-                    while ((rawLine = stream.ReadLine()) != null)
+                    while (ReadLine(state) != null)
                     {
-                        state.indentLevel = GetIndentLevel(rawLine);
-                        state.line = rawLine.Trim();
-                        state.lineNumber++;
-
-                        if (state.line.Length == 0)
-                        {
-                            continue;
-                        }
-
-                        if ((lineHandlerMap.ContainsKey(state.line[0]) && lineHandlerMap[state.line[0]](state))
-                           || state.line.StartsWith("//")
-                           || ParseKeyword(state))
-                        {
-                            continue;
-                        }
-                        Debug.LogError($"Error while parsing Gabby dialogue script: {assetPath}\nUnrecognized symbols on line ${state.lineNumber}: {state.line}\nMake sure the line begins with a symbol recognized by Gabby.");
+                        ParseLine(state);
                     }
 
-                    state.builder.OnDialogueDefinitionEnd();
+                    if (state.isParsingDialogue)
+                    {
+                        state.builder.OnDialogueDefinitionEnd();
+                    }
                 }
             }
-            catch (Exception e)
+            catch (IOException e)
             {
                 Debug.LogError($"Could not parse gabby dialogue script: {assetPath}");
                 Debug.LogError(e.Message);
@@ -80,16 +72,38 @@ namespace GabbyDialogue
             return true;
         }
 
-        private static int GetIndentLevel(string line)
+        private static string ReadLine(ParserState state)
         {
-            for (int i = 0; i < line.Length; ++i)
+            if (state.blockReadLine)
             {
-                if (!Char.IsWhiteSpace(line[i]))
-                {
-                    return i;
-                }
+                state.blockReadLine = false;
+                return state.rawLine;
             }
-            return 0;
+
+            state.rawLine = state.stream.ReadLine();
+            if (state.rawLine != null)
+            {
+                state.line = state.rawLine.Trim();
+                state.lineNumber++;
+                state.indentLevel = GetIndentLevel(state.rawLine);
+            }
+            return state.rawLine;
+        }
+
+        private static void ParseLine(ParserState state)
+        {
+            if (state.line.Length == 0 || state.line.StartsWith("//"))
+            {
+                return;
+            }
+
+            if ((lineHandlerMap.ContainsKey(state.line[0]) && lineHandlerMap[state.line[0]](state))
+                || ParseKeyword(state))
+            {
+                return;
+            }
+
+            Debug.LogError($"Error while parsing Gabby dialogue script: {state.assetPath}\nUnrecognized symbols on line ${state.lineNumber}: {state.line}\nMake sure the line begins with a symbol recognized by Gabby.");
         }
 
         private static bool ParseDialogueDefinition(ParserState state)
@@ -111,6 +125,7 @@ namespace GabbyDialogue
 
             if (state.isParsingDialogue)
             {
+                // End the current dialogue before starting a new one
                 state.builder.OnDialogueDefinitionEnd();
             }
 
@@ -171,9 +186,8 @@ namespace GabbyDialogue
             return state.builder.OnContinuedDialogue(state.lastCharacter, text);
         }
 
-        private static bool ParseOption(ParserState state)
+        private static bool ParseSingleOption(ParserState state)
         {
-            // TODO check indentation and determine block to add to
             string validateOption = @"^\s*\:\s+"
                                   + @"(?<t>[^//]*)"
                                   + regexEndsWithCommentOrNewline;
@@ -185,7 +199,68 @@ namespace GabbyDialogue
             }
 
             string text = match.Groups["t"].Value;
-            // TODO option callback
+            state.builder.OnOption(text);
+            return true;
+        }
+
+        private static bool ParseOptionBlock(ParserState state)
+        {
+            int optionBlockIndentLevel = state.indentLevel;
+
+            state.builder.OnOptionsBegin();
+            ParseSingleOption(state);
+
+            // Parse the entire option block
+            while (ReadLine(state) != null)
+            {
+                if (state.line.Length == 0 || state.line.StartsWith("//"))
+                {
+                    continue;
+                }
+
+                bool isOption = state.line.StartsWith(":");
+
+                // Check if the block is closed
+                if (state.indentLevel < optionBlockIndentLevel
+                    || (state.indentLevel == optionBlockIndentLevel && !isOption))
+                {
+                    // The line belongs to the parent block
+                    // Break and handle it in the parent function
+                    state.blockReadLine = true;
+                    break;
+                }
+
+                Func<ParserState, bool> handler;
+                if (isOption)
+                {
+                    if (state.indentLevel > optionBlockIndentLevel)
+                    {
+                        // Part of a nested option block
+                        // Handle it recursively but don't end this block
+                        ParseOptionBlock(state);
+                        continue;
+                    }
+                    else
+                    {
+                        // Part of the current option block
+                        handler = ParseSingleOption;
+                    }
+                }
+                else
+                {
+                    // Regular line inside the current options block
+                    handler = lineHandlerMap.ContainsKey(state.line[0]) ? lineHandlerMap[state.line[0]] : ParseKeyword;
+                }
+
+                // Handle the current line as part of the current options block
+                if (!handler(state))
+                {
+                    LogParserError(state);
+                }
+            }
+
+            state.builder.OnOptionsEnd();
+
             return true;
         }
 
@@ -235,7 +310,7 @@ namespace GabbyDialogue
             match = Regex.Match(state.line, validateEnd);
             if (match.Success)
             {
-                state.builder.OnEndDialogue();
+                state.builder.OnEnd();
                 return true;
             }
 
@@ -257,6 +332,23 @@ namespace GabbyDialogue
             }
 
             return false;
+        }
+
+        private static int GetIndentLevel(string line)
+        {
+            for (int i = 0; i < line.Length; ++i)
+            {
+                if (!Char.IsWhiteSpace(line[i]))
+                {
+                    return i;
+                }
+            }
+            return 0;
+        }
+
+        private static void LogParserError(ParserState state)
+        {
+            Debug.LogError($"Error while parsing Gabby dialogue script: {state.assetPath}\nUnrecognized symbols on line ${state.lineNumber}: {state.line}\nMake sure the line begins with a symbol recognized by Gabby.");
         }
     }
 }

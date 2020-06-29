@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -9,17 +10,16 @@ namespace GabbyDialogue
 
         public GabbyDialogueAsset dialogueAsset;
 
-        // Start is called before the first frame update
         void Start()
         {
             foreach (Dialogue dialogue in dialogueAsset.dialogues)
             {
                 Debug.Log($"{dialogue.CharacterName}, {dialogue.DialogueName}");
-                PrintDialogueBlock(dialogue.GetMainDialogueBlock());
+                PrintDialogueBlock(dialogue, dialogue.GetMainDialogueBlock());
             }
         }
 
-        void PrintDialogueBlock(DialogueBlock block)
+        void PrintDialogueBlock(Dialogue dialogue, DialogueBlock block)
         {
             foreach (DialogueLine line in block.Lines)
             {
@@ -38,18 +38,23 @@ namespace GabbyDialogue
                         Debug.Log($"+ {text}");
                         break;
                     }
+                    case LineType.OPTION:
+                    {
+                        for (int i = 0; i < line.LineData.Length; i += 2)
+                        {
+                            string text = line.LineData[i];
+                            int blockID = Int32.Parse(line.LineData[i+1]);
+                            Debug.Log($"OPTION: {text}");
+                            PrintDialogueBlock(dialogue, dialogue.GetDialogueBlock(blockID));
+                        }
+                        break;
+                    }
                     case LineType.END:
                     {
                         return;
                     }
                 }
             }
-        }
-
-        // Update is called once per frame
-        void Update()
-        {
-
         }
     }
 }

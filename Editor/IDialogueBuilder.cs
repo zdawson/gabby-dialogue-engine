@@ -10,6 +10,10 @@ namespace GabbyDialogue
         void OnDialogueDefinitionEnd();
         bool OnDialogueLine(string characterName, string text);
         bool OnContinuedDialogue(string characterName, string text);
-        bool OnEndDialogue();
+        bool OnOptionsBegin();
+        bool OnOption(string text);
+        bool OnOptionsEnd();
+        bool OnEnd();
+        
     }
 }
