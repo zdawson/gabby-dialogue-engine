@@ -37,6 +37,7 @@ namespace GabbyDialogue
         // TODO set regex cache size
         private static string regexValidName = @"[\w-]+(\s+[\w-]+)*";
         private static string regexEndsWithCommentOrNewline = @"\s*(//(.*)|$)";
+        private static string regexNonCommentCharacterSequence = @"[^/]*(/?[^/]*)*";
 
         public static bool ParseGabbyDialogueScript(string assetPath, IDialogueBuilder builder)
         {
@@ -138,7 +139,7 @@ namespace GabbyDialogue
         {
             string validateCharacterDialogue = @"^\s*\("
                                              + @"(?<c>" + regexValidName + @")"
-                                             + @"\)\s+(?<t>[^//]*)"
+                                             + @"\)\s+(?<t>" + regexNonCommentCharacterSequence + @")"
                                              + regexEndsWithCommentOrNewline;
 
             Match match = Regex.Match(state.line, validateCharacterDialogue);
@@ -157,7 +158,7 @@ namespace GabbyDialogue
         private static bool ParseSequentialDialogue(ParserState state)
         {
             string validateSequentialDialogue = @"^\s*\-\s+"
-                                              + @"(?<t>[^//]*)"
+                                              + @"(?<t>" + regexNonCommentCharacterSequence + @")"
                                               + regexEndsWithCommentOrNewline;
 
             Match match = Regex.Match(state.line, validateSequentialDialogue);
@@ -173,7 +174,7 @@ namespace GabbyDialogue
         private static bool ParseContinuedDialogue(ParserState state)
         {
             string validateContinuedDialogue = @"^\s*\+\s+"
-                                              + @"(?<t>[^//]*)"
+                                              + @"(?<t>" + regexNonCommentCharacterSequence + @")"
                                               + regexEndsWithCommentOrNewline;
 
             Match match = Regex.Match(state.line, validateContinuedDialogue);
@@ -189,7 +190,7 @@ namespace GabbyDialogue
         private static bool ParseSingleOption(ParserState state)
         {
             string validateOption = @"^\s*\:\s+"
-                                  + @"(?<t>[^//]*)"
+                                  + @"(?<t>" + regexNonCommentCharacterSequence + @")"
                                   + regexEndsWithCommentOrNewline;
 
             Match match = Regex.Match(state.line, validateOption);
@@ -281,7 +282,7 @@ namespace GabbyDialogue
             }
 
             string validateAction = @"^\s*\>\s+"
-                                  + @"(?<t>[^//]*)"
+                                  + @"(?<t>" + regexNonCommentCharacterSequence + @")"
                                   + regexEndsWithCommentOrNewline;
 
             match = Regex.Match(state.line, validateAction);
