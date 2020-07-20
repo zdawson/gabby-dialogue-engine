@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace GabbyDialogue
@@ -12,7 +13,9 @@ namespace GabbyDialogue
         {
             [NonSerialized]
             public Dialogue dialogue;
-            public string characterName;
+            [NonSerialized]
+            public DialogueBlock dialogueBlock;
+            public string dialogueCharacterName;
             public string dialogueName;
             public uint currentLine = 0;
             public DialogueEngineState parentDialogueState = null;
@@ -20,6 +23,7 @@ namespace GabbyDialogue
 
         private IDialogueHandler dialogueHandler;
         private DialogueEngineState state;
+        private bool blockNextLine = false;
 
         public DialogueEngine(IDialogueHandler dialogueHandler)
         {
@@ -31,7 +35,8 @@ namespace GabbyDialogue
             state = new DialogueEngineState
             {
                 dialogue = dialogue,
-                characterName = dialogue.CharacterName,
+                dialogueBlock = dialogue.GetMainDialogueBlock(),
+                dialogueCharacterName = dialogue.CharacterName,
                 dialogueName = dialogue.DialogueName
             };
         }
@@ -44,8 +49,24 @@ namespace GabbyDialogue
 
         public void NextLine()
         {
+            if (blockNextLine)
+            {
+                return;
+            }
+
             ++state.currentLine;
-            DialogueLine line = state.dialogue.GetMainDialogueBlock().Lines[state.currentLine - 1];
+            while (state.currentLine > state.dialogueBlock.Lines.Length)
+            {
+                if (state.parentDialogueState == null)
+                {
+                    dialogueHandler.OnDialogueEnd();
+                    state = null;
+                    return;
+                }
+                state = state.parentDialogueState;
+                ++state.currentLine;
+            }
+            DialogueLine line = state.dialogueBlock.Lines[state.currentLine - 1];
             HandleLine(line);
         }
 
@@ -76,13 +97,8 @@ namespace GabbyDialogue
                 }
                 case LineType.OPTION:
                 {
-                    for (int i = 0; i < line.LineData.Length; i += 2)
-                    {
-                        string text = line.LineData[i];
-                        int blockID = Int32.Parse(line.LineData[i + 1]);
-                        Debug.Log($"OPTION: {text}");
-                        DialogueBlock optionBlock = state.dialogue.GetDialogueBlock(blockID);
-                    }
+                    blockNextLine = true;
+                    HandleOptionAsync(line);
                     break;
                 }
                 case LineType.END:
@@ -91,7 +107,37 @@ namespace GabbyDialogue
                     return;
                 }
             }
+        }
 
+        private async void HandleOptionAsync(DialogueLine line)
+        {
+            string[] optionsText = new string[line.LineData.Length / 2];
+            int[] optionsBlocks = new int[line.LineData.Length / 2];
+            for (int i = 0; i < line.LineData.Length; i += 2)
+            {
+                string text = line.LineData[i];
+                int blockID = Int32.Parse(line.LineData[i + 1]);
+                optionsText[i/2] = text;
+                optionsBlocks[i/2] = blockID;
+            }
+
+            int selection = await dialogueHandler.OnOptionLine(optionsText);
+
+            if (selection < 0 || selection > optionsBlocks.Length)
+            {
+                dialogueHandler.OnDialogueEnd();
+            }
+
+            // Push a new dialogue engine state for the block
+            DialogueEngineState nextBlockState = new DialogueEngineState {
+                parentDialogueState = this.state,
+                dialogue = this.state.dialogue,
+                dialogueBlock = this.state.dialogue.GetDialogueBlock(optionsBlocks[selection]),
+                dialogueCharacterName = this.state.dialogueCharacterName,
+                dialogueName = this.state.dialogueName,
+            };
+            this.state = nextBlockState;
+            blockNextLine = false;
         }
     }
 }
