@@ -1,6 +1,6 @@
 # Gabby Dialogue Engine
 
-A game dialogue engine for Unity, using the Gabby dialog scripting language.
+Gabby is a dialogue scripting language intended for games and visual novels. 
+This is the reference dialogue engine implementation written for Unity.
 
-Gabby is a simple scripting language for game dialog and visual novels.
-See [gabby-dialogue](https://github.com/zdawson/gabby-dialogue).
+See the sample project at [gabby-dialogue](https://github.com/zdawson/gabby-dialogue).
