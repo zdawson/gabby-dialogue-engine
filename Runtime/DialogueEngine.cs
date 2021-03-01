@@ -21,6 +21,13 @@ namespace GabbyDialogue
             public DialogueEngineState parentDialogueState = null;
         }
 
+        public enum OptionsBackBehaviour
+        {
+            ShowAgain, // Shows the options dialogue again as normal, allowing the user to make a new selection
+            SkipToPreviousDialogueLine, // Skips to the previous line of dialogue preceding the option if possible, otherwise shows the options as normal
+            BlockBackNavigation // Disallows navigating back through an options line
+        }
+
         private IDialogueHandler dialogueHandler;
         private DialogueEngineState state;
         private bool blockNextLine = false;
@@ -70,12 +77,29 @@ namespace GabbyDialogue
             HandleLine(line);
         }
 
-        void PrintDialogueBlock(Dialogue dialogue, DialogueBlock block)
+        public void PreviousLine()
         {
-            foreach (DialogueLine line in block.Lines)
+            if (!CanMoveToPreviousLine())
             {
-                HandleLine(line);
+                return;
             }
+            --state.currentLine;
+            if (state.currentLine <= 0)
+            {
+                state = state.parentDialogueState;
+            }
+            DialogueLine line = state.dialogueBlock.Lines[state.currentLine - 1];
+            HandleLine(line);
+        }
+
+        public void CanMoveToNextLine()
+        {
+            
+        }
+
+        public bool CanMoveToPreviousLine()
+        {
+            return state.currentLine > 1 || state.parentDialogueState != null;
         }
 
         private void HandleLine(DialogueLine line)
@@ -104,7 +128,7 @@ namespace GabbyDialogue
                 case LineType.END:
                 {
                     dialogueHandler.OnDialogueEnd();
-                    return;
+                    break;
                 }
             }
         }
