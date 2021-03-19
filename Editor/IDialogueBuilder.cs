@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using System.Collections.Generic;
 
 namespace GabbyDialogue
 {
@@ -10,10 +8,12 @@ namespace GabbyDialogue
         void OnDialogueDefinitionEnd();
         bool OnDialogueLine(string characterName, string text);
         bool OnContinuedDialogue(string characterName, string text);
+        bool OnNarratedDialogue(string characterName, string text);
         bool OnOptionsBegin();
         bool OnOption(string text);
         bool OnOptionsEnd();
         bool OnEnd();
-        
+        bool OnAction(string actionName, List<string> parameters);
+        bool OnJump(string characterName, string dialogueName);
     }
 }

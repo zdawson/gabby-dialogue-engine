@@ -1,16 +1,16 @@
 ﻿using System;
 using UnityEngine;
 using UnityEditor;
-using UnityEditor.Experimental.AssetImporters;
+
 using System.IO;
 using GabbyDialogue;
 
 namespace GabbyDialogue
 {
-    [ScriptedImporter(version: 1, ext: "gab")]
-    public class GabbyFileImporter : ScriptedImporter
+    [UnityEditor.AssetImporters.ScriptedImporter(version: 1, ext: "gab")]
+    public class GabbyFileImporter : UnityEditor.AssetImporters.ScriptedImporter
     {
-        public override void OnImportAsset(AssetImportContext ctx)
+        public override void OnImportAsset(UnityEditor.AssetImporters.AssetImportContext ctx)
         {
             GabbyDialogueAsset asset = ScriptableObject.CreateInstance<GabbyDialogueAsset>();
 

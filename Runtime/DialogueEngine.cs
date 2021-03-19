@@ -18,6 +18,7 @@ namespace GabbyDialogue
             public string dialogueCharacterName;
             public string dialogueName;
             public uint currentLine = 0;
+            public bool isNarration = false;
             public DialogueEngineState parentDialogueState = null;
         }
 
@@ -104,6 +105,12 @@ namespace GabbyDialogue
 
         private void HandleLine(DialogueLine line)
         {
+            // Appended dialogue continues narration, anything else unsets it
+            if (state.isNarration && (line.LineType != LineType.CONTINUED_DIALOGUE))
+            {
+                state.isNarration = false;
+            };
+
             switch (line.LineType)
             {
                 case LineType.DIALOGUE:
@@ -111,6 +118,12 @@ namespace GabbyDialogue
                     string characterName = line.LineData[0];
                     string text = line.LineData[1];
                     dialogueHandler.OnDialogueLine(characterName, text);
+                    break;
+                }
+                case LineType.NARRATED_DIALOGUE:
+                {
+                    string text = line.LineData[0];
+                    dialogueHandler.OnDialogueLine("", text);
                     break;
                 }
                 case LineType.CONTINUED_DIALOGUE:
@@ -128,6 +141,18 @@ namespace GabbyDialogue
                 case LineType.END:
                 {
                     dialogueHandler.OnDialogueEnd();
+                    break;
+                }
+                case LineType.ACTION:
+                {
+                    Debug.Log($"Action: {line.LineData[0]}");
+                    break;
+                }
+                case LineType.JUMP:
+                {
+                    string text = line.LineData[0];
+                    // StartDialogue();
+                    Debug.Log($"Jump: {line.LineData[0]}, {line.LineData[1]}");
                     break;
                 }
             }
