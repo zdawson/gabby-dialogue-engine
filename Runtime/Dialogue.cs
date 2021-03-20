@@ -7,6 +7,7 @@ namespace GabbyDialogue
     public enum LineType
     {
         DIALOGUE, // [char, text]
+        NARRATED_DIALOGUE,
         CONTINUED_DIALOGUE, // [text]
         OPTION, // [opt, jump, opt, jump, ...]
         ACTION, // [func, param, ...]

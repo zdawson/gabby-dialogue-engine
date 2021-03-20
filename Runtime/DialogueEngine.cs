@@ -1,7 +1,5 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Threading.Tasks;
 using UnityEngine;
 
 namespace GabbyDialogue
@@ -18,16 +16,19 @@ namespace GabbyDialogue
             public string dialogueCharacterName;
             public string dialogueName;
             public uint currentLine = 0;
+            public bool isNarration = false;
             public DialogueEngineState parentDialogueState = null;
         }
 
         private IDialogueHandler dialogueHandler;
+        private AbstractScriptingHandler scriptingHandler;
         private DialogueEngineState state;
         private bool blockNextLine = false;
 
-        public DialogueEngine(IDialogueHandler dialogueHandler)
+        public DialogueEngine(IDialogueHandler dialogueHandler, AbstractScriptingHandler scriptingHandler = null)
         {
             this.dialogueHandler = dialogueHandler;
+            this.scriptingHandler = scriptingHandler;
         }
 
         private void SetDialogue(Dialogue dialogue)
@@ -70,16 +71,14 @@ namespace GabbyDialogue
             HandleLine(line);
         }
 
-        void PrintDialogueBlock(Dialogue dialogue, DialogueBlock block)
-        {
-            foreach (DialogueLine line in block.Lines)
-            {
-                HandleLine(line);
-            }
-        }
-
         private void HandleLine(DialogueLine line)
         {
+            // Appended dialogue continues narration, anything else unsets it
+            if (state.isNarration && (line.LineType != LineType.CONTINUED_DIALOGUE))
+            {
+                state.isNarration = false;
+            };
+
             switch (line.LineType)
             {
                 case LineType.DIALOGUE:
@@ -87,6 +86,12 @@ namespace GabbyDialogue
                     string characterName = line.LineData[0];
                     string text = line.LineData[1];
                     dialogueHandler.OnDialogueLine(characterName, text);
+                    break;
+                }
+                case LineType.NARRATED_DIALOGUE:
+                {
+                    string text = line.LineData[0];
+                    dialogueHandler.OnDialogueLine("", text);
                     break;
                 }
                 case LineType.CONTINUED_DIALOGUE:
@@ -104,7 +109,31 @@ namespace GabbyDialogue
                 case LineType.END:
                 {
                     dialogueHandler.OnDialogueEnd();
-                    return;
+                    break;
+                }
+                case LineType.ACTION:
+                {
+                    if (scriptingHandler != null)
+                    {
+                        List<string> actionParameters = new List<string>(line.LineData);
+                        actionParameters.RemoveAt(0);
+                        scriptingHandler.OnAction(line.LineData[0], actionParameters);
+                    }
+                    NextLine();
+                    break;
+                }
+                case LineType.JUMP:
+                {
+                    string characterName = line.LineData[0];
+                    string dialogueName = line.LineData[1];
+                    Dialogue dialogue = dialogueHandler.GetDialogue(characterName, dialogueName);
+                    if (dialogue == null)
+                    {
+                        Debug.LogWarning($"Dialogue jump target does not exist: {characterName}.{dialogueName}");
+                        break;
+                    }
+                    StartDialogue(dialogue);
+                    break;
                 }
             }
         }

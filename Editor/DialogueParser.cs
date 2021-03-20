@@ -24,20 +24,28 @@ namespace GabbyDialogue
             
         }
 
+        // TODO use regex? Would be nicer for multi-character line designators, or overloaded designators
         private static Dictionary<char, Func<ParserState, bool>> lineHandlerMap = new Dictionary<char, Func<ParserState, bool>> {
             {'[', DialogParser.ParseDialogueDefinition},
             {'(', DialogParser.ParseCharacterDialogue},
             {'-', DialogParser.ParseSequentialDialogue},
             {'+', DialogParser.ParseContinuedDialogue},
+            {'*', DialogParser.ParseNarratedDialogue},
             {':', DialogParser.ParseOptionBlock},
             {'>', DialogParser.ParseAction},
             {'{', DialogParser.ParseProperties}
         };
 
         // TODO set regex cache size
-        private static string regexValidName = @"[\w-]+(\s+[\w-]+)*";
-        private static string regexEndsWithCommentOrNewline = @"\s*(//(.*)|$)";
-        private static string regexNonCommentCharacterSequence = @"[^/]*(/?[^/]*)*";
+        private static string regexValidName = @"[\w-]+(?:\s+[\w-]+)*";
+        // private static string regexEndsWithCommentOrNewline = @"\s*(?://(?:.*)|$)";
+        private static string regexEndsWithCommentOrNewline = @"\s*(?:\/{2,}.*)*$";
+        // private static string regexNonCommentCharacterSequence = @"[^/]*(/?[^/]*)*";
+        private static string regexNonCommentCharacterSequence = @"[^\/\n]*(?:\/[^\/\n]+)*";
+        private static string regexQuotedString = @"""(?:[^""\\]|\\.)*""";
+        private static string regexUnquotedString = @"[\w\-\.]+(?:\s+[\w\-\.]+)*";
+        private static string regexQuotedOrUnquotedString = @"(?:" + regexQuotedString + @"|" + regexUnquotedString + @")"; // Quoted strings contain any characters, unquoted strings have restricted characters
+        private static string regexCommaSeparatedStringList = @"(?:(?<p>" + regexQuotedOrUnquotedString + @")(?:\,\s)?)*";
 
         public static bool ParseGabbyDialogueScript(string assetPath, IDialogueBuilder builder)
         {
@@ -49,8 +57,6 @@ namespace GabbyDialogue
                     state.stream = stream;
                     state.builder = builder;
                     state.assetPath = assetPath;
-
-                    // TODO parse metadata
 
                     while (ReadLine(state) != null)
                     {
@@ -137,9 +143,11 @@ namespace GabbyDialogue
 
         private static bool ParseCharacterDialogue(ParserState state)
         {
-            string validateCharacterDialogue = @"^\s*\("
-                                             + @"(?<c>" + regexValidName + @")"
-                                             + @"\)\s+(?<t>" + regexNonCommentCharacterSequence + @")"
+            string validateCharacterDialogue = @"^\s*\(" // Line designator / open parentheses
+                                             + @"(?<c>" + regexValidName + @")" // Character name
+                                             // TODO tags
+                                             + @"\)\s*" // Close parentheses
+                                             + @"(?<t>" + regexNonCommentCharacterSequence + @")" // Text
                                              + regexEndsWithCommentOrNewline;
 
             Match match = Regex.Match(state.line, validateCharacterDialogue);
@@ -157,8 +165,8 @@ namespace GabbyDialogue
 
         private static bool ParseSequentialDialogue(ParserState state)
         {
-            string validateSequentialDialogue = @"^\s*\-\s+"
-                                              + @"(?<t>" + regexNonCommentCharacterSequence + @")"
+            string validateSequentialDialogue = @"^\s*\-\s*" // Line designator
+                                              + @"(?<t>" + regexNonCommentCharacterSequence + @")" // Text
                                               + regexEndsWithCommentOrNewline;
 
             Match match = Regex.Match(state.line, validateSequentialDialogue);
@@ -173,8 +181,8 @@ namespace GabbyDialogue
 
         private static bool ParseContinuedDialogue(ParserState state)
         {
-            string validateContinuedDialogue = @"^\s*\+\s+"
-                                              + @"(?<t>" + regexNonCommentCharacterSequence + @")"
+            string validateContinuedDialogue = @"^\s*\+\s*" // Line designator
+                                              + @"(?<t>" + regexNonCommentCharacterSequence + @")" // Text
                                               + regexEndsWithCommentOrNewline;
 
             Match match = Regex.Match(state.line, validateContinuedDialogue);
@@ -187,10 +195,26 @@ namespace GabbyDialogue
             return state.builder.OnContinuedDialogue(state.lastCharacter, text);
         }
 
+        private static bool ParseNarratedDialogue(ParserState state)
+        {
+            string validateNarratedDialogue = @"^\s*\*\s*" // Line designator
+                                              + @"(?<t>" + regexNonCommentCharacterSequence + @")" // Text
+                                              + regexEndsWithCommentOrNewline;
+
+            Match match = Regex.Match(state.line, validateNarratedDialogue);
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            string text = match.Groups["t"].Value;
+            return state.builder.OnNarratedDialogue(state.lastCharacter, text);
+        }
+
         private static bool ParseSingleOption(ParserState state)
         {
-            string validateOption = @"^\s*\:\s+"
-                                  + @"(?<t>" + regexNonCommentCharacterSequence + @")"
+            string validateOption = @"^\s*\:\s*" // Line designator
+                                  + @"(?<t>" + regexNonCommentCharacterSequence + @")" // Text
                                   + regexEndsWithCommentOrNewline;
 
             Match match = Regex.Match(state.line, validateOption);
@@ -269,27 +293,36 @@ namespace GabbyDialogue
         {
             Match match;
 
-            string validateJump = @"^\s*\>\>\s+"
-                                  + @"(?<j>" + regexValidName + @")"
+            string validateJump = @"^\s*\>\>\s*" // Line designator
+                                  + @"(?<c>" + regexValidName + @")" // Character
+                                  + @"\s*\.\s*" // Separator
+                                  + @"(?<d>" + regexValidName + @")" // Dialogue
                                   + regexEndsWithCommentOrNewline;
 
             match = Regex.Match(state.line, validateJump);
             if (match.Success)
             {
-                string jumpPoint = match.Groups["j"].Value;
-                // TODO jump callback
+                string characterName = match.Groups["c"].Value;
+                string dialogueName = match.Groups["d"].Value;
+                state.builder.OnJump(characterName, dialogueName);
                 return true;
             }
 
-            string validateAction = @"^\s*\>\s+"
-                                  + @"(?<t>" + regexNonCommentCharacterSequence + @")"
+            string validateAction = @"^\s*\>\s*" // Line designator
+                                  + @"(?<n>" + regexValidName + @")" // Action name
+                                  + @"\s*\(" + regexCommaSeparatedStringList + @"\)" // Parameter list
                                   + regexEndsWithCommentOrNewline;
 
             match = Regex.Match(state.line, validateAction);
             if (match.Success)
             {
-                string t = match.Groups["t"].Value;
-                // TODO action callback
+                string actionName = match.Groups["n"].Value;
+                List<string> actionParameters = new List<string>();
+                foreach (Capture c in match.Groups["p"].Captures)
+                {
+                    actionParameters.Add(c.Value);
+                }
+                state.builder.OnAction(actionName, actionParameters);
                 return true;
             }
 
@@ -306,7 +339,7 @@ namespace GabbyDialogue
         {
             Match match;
 
-            string validateEnd = @"^\s*end\s*$";
+            string validateEnd = @"^\s*end" + regexEndsWithCommentOrNewline;
 
             match = Regex.Match(state.line, validateEnd);
             if (match.Success)
@@ -316,7 +349,8 @@ namespace GabbyDialogue
             }
 
             // TODO move metadata parsing into own section, with restriction that it must appear at the top of the file
-            string validateVersion = @"^\s*gabby 0\.\d\s*$";
+            // TODO do something with metadata
+            string validateVersion = @"^\s*gabby 0\.\d" + regexEndsWithCommentOrNewline;
 
             match = Regex.Match(state.line, validateVersion);
             if (match.Success)
@@ -324,9 +358,9 @@ namespace GabbyDialogue
                 return true;
             }
 
-            string validateLocale = @"^\s*locale(.*?)\s*$";
+            string validateLanguage = @"^\s*language(.*?)" + regexEndsWithCommentOrNewline;
 
-            match = Regex.Match(state.line, validateLocale);
+            match = Regex.Match(state.line, validateLanguage);
             if (match.Success)
             {
                 return true;

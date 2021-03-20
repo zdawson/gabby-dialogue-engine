@@ -64,6 +64,13 @@ namespace GabbyDialogue
             return true;
         }
 
+        public bool OnNarratedDialogue(string characterName, string text)
+        {
+            DialogueLine line = new DialogueLine(LineType.NARRATED_DIALOGUE, new string[]{text});
+            dialogueBlockStack.Peek().lines.Add(line);
+            return true;
+        }
+
         public bool OnOptionsBegin()
         {
             OptionsBlockData options = new OptionsBlockData();
@@ -132,6 +139,23 @@ namespace GabbyDialogue
             
             Dialogue dialogue = new Dialogue(curDialogue.characterName, curDialogue.dialogueName, dialogueBlocks.ToArray());
             dialogues.Add(dialogue);
+        }
+
+        public bool OnAction(string actionName, List<string> parameters)
+        {
+            List<string> lineData = new List<string>();
+            lineData.Add(actionName);
+            lineData.AddRange(parameters);
+            DialogueLine line = new DialogueLine(LineType.ACTION, lineData.ToArray());
+            dialogueBlockStack.Peek().lines.Add(line);
+            return true;
+        }
+
+        public bool OnJump(string characterName, string dialogueName)
+        {
+            DialogueLine line = new DialogueLine(LineType.JUMP, new string[]{characterName, dialogueName});
+            dialogueBlockStack.Peek().lines.Add(line);
+            return true;
         }
 
         public List<Dialogue> Dialogues => dialogues;
