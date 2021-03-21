@@ -30,8 +30,11 @@ namespace GabbyDialogue
             public List<DialogueLine> lines = new List<DialogueLine>();
         }
 
+        public string language = null;
+        public string version = null;
+
         private List<Dialogue> dialogues = new List<Dialogue>();
-        private DialogueData curDialogue;
+        private DialogueData curDialogue = null;
         private Stack<DialogueBlockData> dialogueBlockStack = new Stack<DialogueBlockData>();
         private Stack<OptionsBlockData> optionsBlockStack = new Stack<OptionsBlockData>();
         private int nextBlockID = 0;
@@ -156,6 +159,16 @@ namespace GabbyDialogue
             DialogueLine line = new DialogueLine(LineType.JUMP, new string[]{characterName, dialogueName});
             dialogueBlockStack.Peek().lines.Add(line);
             return true;
+        }
+
+        public void SetVersion(string version)
+        {
+            this.version = version;
+        }
+
+        public void SetLanguage(string language)
+        {
+            this.language = language;
         }
 
         public List<Dialogue> Dialogues => dialogues;

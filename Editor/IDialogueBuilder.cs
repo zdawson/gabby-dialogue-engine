@@ -15,5 +15,7 @@ namespace GabbyDialogue
         bool OnEnd();
         bool OnAction(string actionName, List<string> parameters);
         bool OnJump(string characterName, string dialogueName);
+        void SetVersion(string version);
+        void SetLanguage(string language);
     }
 }

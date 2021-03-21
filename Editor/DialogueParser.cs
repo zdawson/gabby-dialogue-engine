@@ -320,7 +320,14 @@ namespace GabbyDialogue
                 List<string> actionParameters = new List<string>();
                 foreach (Capture c in match.Groups["p"].Captures)
                 {
-                    actionParameters.Add(c.Value);
+                    string value = c.Value;
+                    // Remove quotes from quoted string parameters
+                    Match quotedStringMatch = Regex.Match(value, regexQuotedString);
+                    if (quotedStringMatch.Success)
+                    {   
+                        value = value.Substring(1, value.Length - 2);
+                    }
+                    actionParameters.Add(value);
                 }
                 state.builder.OnAction(actionName, actionParameters);
                 return true;
@@ -348,21 +355,28 @@ namespace GabbyDialogue
                 return true;
             }
 
-            // TODO move metadata parsing into own section, with restriction that it must appear at the top of the file
-            // TODO do something with metadata
-            string validateVersion = @"^\s*gabby 0\.\d" + regexEndsWithCommentOrNewline;
+            // TODO add restriction that metadata must appear at the top of the file
+            string validateVersion = @"^\s*gabby\s+"
+                                   + @"(?<v>\d+(?:.\d+)*)"
+                                   + regexEndsWithCommentOrNewline;
 
             match = Regex.Match(state.line, validateVersion);
             if (match.Success)
             {
+                string version = match.Groups["v"].Value;
+                state.builder.SetVersion(version);
                 return true;
             }
 
-            string validateLanguage = @"^\s*language(.*?)" + regexEndsWithCommentOrNewline;
+            string validateLanguage = @"^\s*language\s+"
+                                    + @"(?<l>[\w\-]+)"
+                                    + regexEndsWithCommentOrNewline;
 
             match = Regex.Match(state.line, validateLanguage);
             if (match.Success)
             {
+                string language = match.Groups["l"].Value;
+                state.builder.SetLanguage(language);
                 return true;
             }
 

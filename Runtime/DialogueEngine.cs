@@ -115,9 +115,14 @@ namespace GabbyDialogue
                 {
                     if (scriptingHandler != null)
                     {
+                        string actionName = line.LineData[0];
                         List<string> actionParameters = new List<string>(line.LineData);
                         actionParameters.RemoveAt(0);
-                        scriptingHandler.OnAction(line.LineData[0], actionParameters);
+                        bool success = scriptingHandler.OnAction(actionName, actionParameters);
+                        if (!success)
+                        {
+                            Debug.LogWarning($"Unhandled action: {actionName}");
+                        }
                     }
                     NextLine();
                     break;

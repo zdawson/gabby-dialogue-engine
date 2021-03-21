@@ -21,6 +21,8 @@ namespace GabbyDialogue
                 // Add the dialogues if parsed successfully
                 // We still create the scriptable object so it appears in the hierarchy
                 asset.dialogues = builder.Dialogues.ToArray();
+                asset.version = builder.version;
+                asset.language = builder.language;
             }         
 
             ctx.AddObjectToAsset("gabbyDialogue", asset);

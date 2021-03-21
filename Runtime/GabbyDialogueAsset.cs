@@ -10,6 +10,8 @@ namespace GabbyDialogue
      */
     public class GabbyDialogueAsset : ScriptableObject
     {
+        public string version;
+        public string language;
         public Dialogue[] dialogues;
     }
 }
