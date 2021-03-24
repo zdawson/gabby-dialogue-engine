@@ -97,7 +97,7 @@ namespace GabbyDialogue
                 case LineType.CONTINUED_DIALOGUE:
                 {
                     string text = line.LineData[0];
-                    dialogueHandler.OnContinuedDialogue(text);
+                    dialogueHandler.OnContinuedDialogue(text, line.Tags);
                     break;
                 }
                 case LineType.OPTION:
