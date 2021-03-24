@@ -33,7 +33,7 @@ namespace GabbyDialogue
             {'*', DialogParser.ParseNarratedDialogue},
             {':', DialogParser.ParseOptionBlock},
             {'>', DialogParser.ParseAction},
-            {'{', DialogParser.ParseProperties}
+            {'<', DialogParser.ParseTags}
         };
 
         // TODO set regex cache size
@@ -162,13 +162,10 @@ namespace GabbyDialogue
             var tagCaptures = match.Groups["tag"].Captures;
             if (tagCaptures.Count > 0)
             {
-                // TODO add support for named tag parsing
-                // TODO move tag parsing into top level function, reused by tag lines
                 Dictionary<string, string> inlineTags = new Dictionary<string, string>();
                 foreach (Capture c in tagCaptures)
                 {
-                    string tag = c.Value;
-                    inlineTags.Add(tag, "");
+                    ParseTag(c.Value, ref inlineTags);
                 }
                 state.builder.SetNextLineTags(inlineTags);
             }
@@ -350,10 +347,47 @@ namespace GabbyDialogue
             return false;
         }
 
-        private static bool ParseProperties(ParserState state)
+        private static bool ParseTags(ParserState state)
         {
-            Debug.Log($"Properties not yet supported, ignoring.");
+            string validateTags = @"^\s*\<" // Line designator / open angle brackets
+                                + @"(?:\s*(?<tag>[^,\s\<\>]+(?:\s+[^,\s\<\>]+)*\s*,?))+\s*" // Tags
+                                + @"\>" // Close angle brackets
+                                + regexEndsWithCommentOrNewline;
+
+            Match match = Regex.Match(state.line, validateTags);
+            if (!match.Success)
+            {
+                return false;
+            }
+
+            var tagCaptures = match.Groups["tag"].Captures;
+            Dictionary<string, string> tags = new Dictionary<string, string>();
+            foreach (Capture c in tagCaptures)
+            {
+                ParseTag(c.Value, ref tags);
+            }
+            state.builder.SetNextLineTags(tags);
+
             return true;
+        }
+
+        private static void ParseTag(string tag, ref Dictionary<string, string> tags)
+        {
+            // Handle key / value pairs in tags
+            string validateNamedTag = @"^\s*"
+                                    + @"(?<k>[^,\s\<\>\:]+(?:\s+[^,\s\<\>\:]+)*)" // Key
+                                    + @"\s*:\s*"
+                                    + @"(?<v>[^,\s\<\>\:]+(?:\s+[^,\s\<\>\:]+)*)" // Value
+                                    + @"\s*$";
+            Match match = Regex.Match(tag, validateNamedTag);
+            if (match.Success)
+            {
+                tags.Add(match.Groups["k"].Value, match.Groups["v"].Value);
+            }
+            else
+            {
+                tags.Add(tag, "");
+            }
         }
 
         private static bool ParseKeyword(ParserState state)
