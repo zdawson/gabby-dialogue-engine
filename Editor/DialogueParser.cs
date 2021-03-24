@@ -144,10 +144,10 @@ namespace GabbyDialogue
         private static bool ParseCharacterDialogue(ParserState state)
         {
             string validateCharacterDialogue = @"^\s*\(" // Line designator / open parentheses
-                                             + @"(?<c>" + regexValidName + @")" // Character name
-                                             // TODO tags
+                                             + @"(?<char>" + regexValidName + @")" // Character name
+                                             + @"(?:\s*,\s*(?<tag>[^,\s]+(?:\s+[^,\s]+)*))*" // Inline tags
                                              + @"\)\s*" // Close parentheses
-                                             + @"(?<t>" + regexNonCommentCharacterSequence + @")" // Text
+                                             + @"(?<text>" + regexNonCommentCharacterSequence + @")" // Text
                                              + regexEndsWithCommentOrNewline;
 
             Match match = Regex.Match(state.line, validateCharacterDialogue);
@@ -156,8 +156,22 @@ namespace GabbyDialogue
                 return false;
             }
 
-            string characterName = match.Groups["c"].Value;
-            string text = match.Groups["t"].Value;
+            string characterName = match.Groups["char"].Value;
+            string text = match.Groups["text"].Value;
+
+            var tagCaptures = match.Groups["tag"].Captures;
+            if (tagCaptures.Count > 0)
+            {
+                // TODO add support for named tag parsing
+                // TODO move tag parsing into top level function, reused by tag lines
+                Dictionary<string, string> inlineTags = new Dictionary<string, string>();
+                foreach (Capture c in tagCaptures)
+                {
+                    string tag = c.Value;
+                    inlineTags.Add(tag, "");
+                }
+                state.builder.SetNextLineTags(inlineTags);
+            }
 
             state.lastCharacter = characterName;
             return state.builder.OnDialogueLine(characterName, text);

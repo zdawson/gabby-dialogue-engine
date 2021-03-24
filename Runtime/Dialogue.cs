@@ -1,9 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace GabbyDialogue
-{
-    
+{    
     public enum LineType
     {
         DIALOGUE, // [char, text]
@@ -22,15 +22,22 @@ namespace GabbyDialogue
         private LineType lineType;
         [SerializeField]
         private string[] lineData;
+        [SerializeField]
+        private StringDictionary tags;
 
         public DialogueLine(LineType lineType, string[] lineData)
         {
             this.lineType = lineType;
             this.lineData = lineData;
+            this.tags = new StringDictionary();
         }
 
         public LineType LineType => lineType;
         public string[] LineData => lineData;
+        public Dictionary<string, string> Tags {
+            get => tags;
+            set => this.tags = new StringDictionary(value);
+        }
     }
 
     [Serializable]

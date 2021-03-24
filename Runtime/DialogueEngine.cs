@@ -85,13 +85,13 @@ namespace GabbyDialogue
                 {
                     string characterName = line.LineData[0];
                     string text = line.LineData[1];
-                    dialogueHandler.OnDialogueLine(characterName, text);
+                    dialogueHandler.OnDialogueLine(characterName, text, line.Tags);
                     break;
                 }
                 case LineType.NARRATED_DIALOGUE:
                 {
                     string text = line.LineData[0];
-                    dialogueHandler.OnDialogueLine("", text);
+                    dialogueHandler.OnDialogueLine("", text, line.Tags);
                     break;
                 }
                 case LineType.CONTINUED_DIALOGUE:
