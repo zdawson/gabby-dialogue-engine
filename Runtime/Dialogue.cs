@@ -12,7 +12,8 @@ namespace GabbyDialogue
         OPTION, // [opt, jump, opt, jump, ...]
         ACTION, // [func, param, ...]
         JUMP, // [target]
-        END // nothing
+        END, // nothing
+        CONDITIONAL // [[n,n,...,e], callback, param, param, ..., jump, callback, ..., elsejump]
     }
 
     [Serializable]

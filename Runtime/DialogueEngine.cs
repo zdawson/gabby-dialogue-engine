@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace GabbyDialogue
@@ -140,7 +141,67 @@ namespace GabbyDialogue
                     StartDialogue(dialogue);
                     break;
                 }
+                case LineType.CONDITIONAL:
+                {
+                    // Need to process the conditional layout due to current format limitations
+                    string layoutString = line.LineData[0];
+                    string[] blocks = layoutString.Split(',');
+                    int curPosition = 1;
+                    for (int i = 0; i < blocks.Length; ++i)
+                    {
+                        if (blocks[i] != "e")
+                        {
+                            int numParams = Convert.ToInt32(blocks[i]);
+                            int jump = Convert.ToInt32(line.LineData[curPosition]);
+                            string callback = line.LineData[curPosition + 1];
+                            string[] parameters = line.LineData.Skip(curPosition + 2).Take(numParams).ToArray();
+                            curPosition += 2 + numParams;
+
+                            // Run the callback and see if the condition passes
+                            if (RunCondition(jump, callback, parameters))
+                            {
+                                PushDialogueBlock(jump);
+                                break;
+                            }
+                        }
+                        else
+                        {
+                            int jump = Convert.ToInt32(line.LineData[curPosition]);
+                            PushDialogueBlock(jump);
+                            break;
+                        }
+                    }
+                    NextLine();
+                    break;
+                }
             }
+        }
+
+        private void PushDialogueBlock(int blockID)
+        {
+            // Push a new dialogue engine state for the block
+            DialogueEngineState nextBlockState = new DialogueEngineState {
+                parentDialogueState = this.state,
+                dialogue = this.state.dialogue,
+                dialogueBlock = this.state.dialogue.GetDialogueBlock(blockID),
+                dialogueCharacterName = this.state.dialogueCharacterName,
+                dialogueName = this.state.dialogueName,
+            };
+            this.state = nextBlockState;
+            blockNextLine = false;
+        }
+
+        private bool RunCondition(int jump, string callback, string[] parameters)
+        {
+            bool result;
+            bool success = scriptingHandler.OnCondition(callback, parameters, out result);
+            if (!success)
+            {
+                Debug.LogWarning($"Unhandled conditional: {callback}");
+                return false;
+            }
+
+            return result;
         }
 
         private async void HandleOptionAsync(DialogueLine line)
@@ -162,16 +223,7 @@ namespace GabbyDialogue
                 dialogueHandler.OnDialogueEnd();
             }
 
-            // Push a new dialogue engine state for the block
-            DialogueEngineState nextBlockState = new DialogueEngineState {
-                parentDialogueState = this.state,
-                dialogue = this.state.dialogue,
-                dialogueBlock = this.state.dialogue.GetDialogueBlock(optionsBlocks[selection]),
-                dialogueCharacterName = this.state.dialogueCharacterName,
-                dialogueName = this.state.dialogueName,
-            };
-            this.state = nextBlockState;
-            blockNextLine = false;
+            PushDialogueBlock(optionsBlocks[selection]);
         }
     }
 }

@@ -327,23 +327,120 @@ namespace GabbyDialogue
             if (match.Success)
             {
                 string actionName = match.Groups["n"].Value;
-                List<string> actionParameters = new List<string>();
-                foreach (Capture c in match.Groups["p"].Captures)
-                {
-                    string value = c.Value;
-                    // Remove quotes from quoted string parameters
-                    Match quotedStringMatch = Regex.Match(value, regexQuotedString);
-                    if (quotedStringMatch.Success)
-                    {   
-                        value = value.Substring(1, value.Length - 2);
-                    }
-                    actionParameters.Add(value);
-                }
-                state.builder.OnAction(actionName, actionParameters);
+                List<string> parameters = ParseParametersInCaptures(match.Groups["p"].Captures);
+                state.builder.OnAction(actionName, parameters);
                 return true;
             }
 
             return false;
+        }
+
+        private static bool ParseSingleConditional(ParserState state)
+        {
+            Match match;
+
+            // Conditionals
+            string regexCondition = @"(?<cb>" + regexValidName + @")\s*"
+                                  + @"\(" + regexCommaSeparatedStringList + @"\)";
+            string validateIf = @"^\s*if\s+"
+                              + regexCondition
+                              + regexEndsWithCommentOrNewline;
+
+            match = Regex.Match(state.line, validateIf);
+            if (match.Success)
+            {
+                string callbackName = match.Groups["cb"].Value;
+                List<string> parameters = ParseParametersInCaptures(match.Groups["p"].Captures);
+                state.builder.OnIf(callbackName, parameters);
+                return true;
+            }
+
+            string validateElseIf = @"^\s*else\s+if\s+"
+                              + regexCondition
+                              + regexEndsWithCommentOrNewline;
+
+            match = Regex.Match(state.line, validateElseIf);
+            if (match.Success)
+            {
+                string callbackName = match.Groups["cb"].Value;
+                List<string> parameters = ParseParametersInCaptures(match.Groups["p"].Captures);
+                state.builder.OnElseIf(callbackName, parameters);
+                return true;
+            }
+
+            string validateElse = @"^\s*else"
+                              + regexEndsWithCommentOrNewline;
+
+            match = Regex.Match(state.line, validateElse);
+            if (match.Success)
+            {
+                state.builder.OnElse();
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool ParseConditionalBlock(ParserState state)
+        {
+            int rootBlockIndentLevel = state.indentLevel;
+
+            state.builder.OnConditionalBegin();
+            ParseSingleConditional(state);
+
+            string regexMatchConditionalLineStart = @"^\s*(?:if|else\s+if|else)";
+
+            // Parse the entire block
+            while (ReadLine(state) != null)
+            {
+                if (state.line.Length == 0 || state.line.StartsWith("//"))
+                {
+                    continue;
+                }
+
+                bool isConditional = Regex.IsMatch(state.line, regexMatchConditionalLineStart);
+
+                // Check if the block is closed
+                if (state.indentLevel < rootBlockIndentLevel
+                    || (state.indentLevel == rootBlockIndentLevel && !isConditional))
+                {
+                    // The line belongs to the parent block, so the block is done
+                    // Break and handle it in the parent function
+                    state.blockReadLine = true;
+                    break;
+                }
+
+                Func<ParserState, bool> handler;
+                if (isConditional)
+                {
+                    if (state.indentLevel > rootBlockIndentLevel)
+                    {
+                        // Part of a nested conditional block
+                        // Handle it recursively but don't end this block
+                        ParseConditionalBlock(state);
+                        continue;
+                    }
+                    else
+                    {
+                        // Part of the current block
+                        handler = ParseSingleConditional;
+                    }
+                }
+                else
+                {
+                    // Regular line inside the current block
+                    handler = lineHandlerMap.ContainsKey(state.line[0]) ? lineHandlerMap[state.line[0]] : ParseKeyword;
+                }
+
+                // Handle the current line as part of the current block
+                if (!handler(state))
+                {
+                    LogParserError(state);
+                }
+            }
+
+            state.builder.OnConditionalEnd();
+            return true;
         }
 
         private static bool ParseTags(ParserState state)
@@ -393,6 +490,15 @@ namespace GabbyDialogue
         {
             Match match;
 
+            // Conditionals
+            string beginIf = @"^\s*if\s+?";
+            match = Regex.Match(state.line, beginIf);
+            if (match.Success)
+            {
+                return ParseConditionalBlock(state);
+            }
+
+            // End
             string validateEnd = @"^\s*end" + regexEndsWithCommentOrNewline;
 
             match = Regex.Match(state.line, validateEnd);
@@ -402,6 +508,7 @@ namespace GabbyDialogue
                 return true;
             }
 
+            // Metadata
             // TODO add restriction that metadata must appear at the top of the file
             string validateVersion = @"^\s*gabby\s+"
                                    + @"(?<v>\d+(?:.\d+)*)"
@@ -428,6 +535,23 @@ namespace GabbyDialogue
             }
 
             return false;
+        }
+
+        private static List<string> ParseParametersInCaptures(CaptureCollection captures)
+        {
+            List<string> parameters = new List<string>();
+            foreach (Capture c in captures)
+            {
+                string value = c.Value;
+                // Remove quotes from quoted string parameters
+                Match quotedStringMatch = Regex.Match(value, regexQuotedString);
+                if (quotedStringMatch.Success)
+                {   
+                    value = value.Substring(1, value.Length - 2);
+                }
+                parameters.Add(value);
+            }
+            return parameters;
         }
 
         private static int GetIndentLevel(string line)

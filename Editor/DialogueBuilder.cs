@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using System.Collections.Generic;
 
 namespace GabbyDialogue
 {
@@ -24,6 +22,12 @@ namespace GabbyDialogue
             public List<(string, DialogueBlockData)> options = new List<(string, DialogueBlockData)>();
         }
 
+        private class ConditionalBlockData
+        {
+            public List<(string, List<string>, DialogueBlockData)> conditionalBlocks = new List<(string, List<string>, DialogueBlockData)>();
+            public DialogueBlockData elseBlock;
+        }
+
         private class DialogueBlockData
         {
             public int blockID;
@@ -38,6 +42,7 @@ namespace GabbyDialogue
         private DialogueData curDialogue = null;
         private Stack<DialogueBlockData> dialogueBlockStack = new Stack<DialogueBlockData>();
         private Stack<OptionsBlockData> optionsBlockStack = new Stack<OptionsBlockData>();
+        private Stack<ConditionalBlockData> conditionalBlockStack = new Stack<ConditionalBlockData>();
         private int nextBlockID = 0;
 
         public bool OnDialogueDefinition(string characterName, string dialogueName)
@@ -159,6 +164,104 @@ namespace GabbyDialogue
         {
             DialogueLine line = CreateLine(LineType.JUMP, new string[]{characterName, dialogueName});
             dialogueBlockStack.Peek().lines.Add(line);
+            return true;
+        }
+
+        public bool OnConditionalBegin()
+        {
+            ConditionalBlockData block = new ConditionalBlockData();
+            conditionalBlockStack.Push(block);
+            return true;
+        }
+
+        public bool OnConditionalEnd()
+        {
+            // Close the last open dialogue block
+            dialogueBlockStack.Pop();
+
+            ConditionalBlockData conditionalBlock = conditionalBlockStack.Pop();
+
+            // [[n,n,...,e], callback, param, param, ..., jump, callback, ..., elsejump]
+            string dataLayoutString = "";
+            List<string> lineData = new List<string>();
+            foreach ((string callback, List<string> parameters, DialogueBlockData dialogueBlock) in conditionalBlock.conditionalBlocks)
+            {
+                lineData.Add($"{dialogueBlock.blockID}");
+                lineData.Add(callback);
+                lineData.AddRange(parameters);
+                curDialogue.blocks.Add(dialogueBlock);
+
+                dataLayoutString += $"{parameters.Count},";
+            }
+
+            if (conditionalBlock.elseBlock != null)
+            {
+                lineData.Add($"{conditionalBlock.elseBlock.blockID}");
+                curDialogue.blocks.Add(conditionalBlock.elseBlock);
+                dataLayoutString += "e";
+            }
+            else
+            {
+                // Drop the last comma
+                dataLayoutString = dataLayoutString.Substring(0, dataLayoutString.Length - 1);
+            }
+
+            lineData.Insert(0, dataLayoutString);
+
+            DialogueLine line = CreateLine(LineType.CONDITIONAL, lineData.ToArray());
+            dialogueBlockStack.Peek().lines.Add(line);
+
+            return true;
+        }
+
+        public bool OnIf(string callbackName, List<string> parameters)
+        {
+            // Start a dialogue block for this condition
+            DialogueBlockData block = new DialogueBlockData();
+            block.blockID = nextBlockID++;
+            dialogueBlockStack.Push(block);
+
+            conditionalBlockStack.Peek().conditionalBlocks.Add((callbackName, parameters, block));
+
+            return true;
+        }
+
+        public bool OnElseIf(string callbackName, List<string> parameters)
+        {
+            // Close the previous condition's dialogue block
+            ConditionalBlockData conditionalBlock = conditionalBlockStack.Peek();
+            if (conditionalBlock.conditionalBlocks.Count > 0)
+            {
+                dialogueBlockStack.Pop();
+            }
+
+            // Start a dialogue block for this condition
+            DialogueBlockData block = new DialogueBlockData();
+            block.blockID = nextBlockID++;
+            dialogueBlockStack.Push(block);
+
+            conditionalBlockStack.Peek().conditionalBlocks.Add((callbackName, parameters, block));
+
+            return true;
+        }
+
+        public bool OnElse()
+        {
+            // Close the previous condition's dialogue block
+            ConditionalBlockData conditionalBlock = conditionalBlockStack.Peek();
+            if (conditionalBlock.conditionalBlocks.Count > 0)
+            {
+                dialogueBlockStack.Pop();
+            }
+
+            // Start a dialogue block for this condition
+            DialogueBlockData block = new DialogueBlockData();
+            block.blockID = nextBlockID++;
+            dialogueBlockStack.Push(block);
+
+            // Else has no condition
+            conditionalBlockStack.Peek().elseBlock = block;
+
             return true;
         }
 
