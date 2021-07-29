@@ -16,22 +16,35 @@ namespace GabbyDialogue
         public ParameterType type;
         public object value;
     }
+    public struct ActionResult
+    {
+        public bool handled;
+        public bool autoAdvance;
+    }
 
     public abstract class AbstractScriptingHandler
     {
-        protected Dictionary<string, Action<List<ActionParameter>>> actionHandlers = new Dictionary<string, Action<List<ActionParameter>>>();
+        protected Dictionary<string, Func<List<ActionParameter>, ActionResult>> actionHandlers = new Dictionary<string, Func<List<ActionParameter>, ActionResult>>();
         protected Dictionary<string, Func<List<ActionParameter>, bool>> conditionalHandlers = new Dictionary<string, Func<List<ActionParameter>, bool>>();
 
         public bool OnAction(string actionName, IEnumerable<string> parameters)
         {
-            Action<List<ActionParameter>> action;
+            Func<List<ActionParameter>, ActionResult> action;
             if (!actionHandlers.TryGetValue(actionName, out action))
             {
-                return false;
+                Debug.LogWarning($"Unhandled action: {actionName}");
+                return true;
             }
 
-            action.Invoke(ParseParameters(parameters));
-            return true;
+            // TODO either simplify this, or add support for multiple action handlers for a given action name
+            ActionResult result = action.Invoke(ParseParameters(parameters));
+            if (!result.handled)
+            {
+                Debug.LogWarning($"Unhandled action: {actionName}");
+                return true;
+            }
+
+            return result.autoAdvance;
         }
 
         public bool OnCondition(string callbackName, IEnumerable<string> parameters, out bool conditionResult)
@@ -59,7 +72,7 @@ namespace GabbyDialogue
             return actionParameters;
         }
 
-        protected void AddActionHandler(string actionName, Action<List<ActionParameter>> action)
+        protected void AddActionHandler(string actionName, Func<List<ActionParameter>, ActionResult> action)
         {
             if (actionHandlers.ContainsKey(actionName))
             {

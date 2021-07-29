@@ -114,18 +114,18 @@ namespace GabbyDialogue
                 }
                 case LineType.ACTION:
                 {
+                    bool autoAdvance = true;
                     if (scriptingHandler != null)
                     {
                         string actionName = line.LineData[0];
                         List<string> actionParameters = new List<string>(line.LineData);
                         actionParameters.RemoveAt(0);
-                        bool success = scriptingHandler.OnAction(actionName, actionParameters);
-                        if (!success)
-                        {
-                            Debug.LogWarning($"Unhandled action: {actionName}");
-                        }
+                        autoAdvance = scriptingHandler.OnAction(actionName, actionParameters);
                     }
-                    NextLine();
+                    if (autoAdvance)
+                    {
+                        NextLine();   
+                    }
                     break;
                 }
                 case LineType.JUMP:
