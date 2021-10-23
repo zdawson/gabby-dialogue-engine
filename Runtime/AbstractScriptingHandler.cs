@@ -65,9 +65,42 @@ namespace GabbyDialogue
             List<ActionParameter> actionParameters = new List<ActionParameter>();
             foreach (string str in stringParameters)
             {
-                actionParameters.Add(new ActionParameter(){
-                    type=ParameterType.String,
-                    value=str});
+                int intResult;
+                float floatResult;
+                bool boolResult;
+                // TODO support parsing key:value pairs
+                if (Int32.TryParse(str, out intResult))
+                {
+                    actionParameters.Add(new ActionParameter()
+                    {
+                        type = ParameterType.Number,
+                        value = intResult
+                    });
+                }
+                else if (Single.TryParse(str, out floatResult))
+                {
+                    actionParameters.Add(new ActionParameter()
+                    {
+                        type = ParameterType.Number,
+                        value = floatResult
+                    });
+                }
+                else if (Boolean.TryParse(str, out boolResult))
+                {
+                    actionParameters.Add(new ActionParameter()
+                    {
+                        type = ParameterType.Boolean,
+                        value = boolResult
+                    });
+                }
+                else
+                {
+                    actionParameters.Add(new ActionParameter()
+                    {
+                        type = ParameterType.String,
+                        value = str
+                    });
+                }
             }
             return actionParameters;
         }

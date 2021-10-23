@@ -420,6 +420,13 @@ namespace GabbyDialogue
                         ParseConditionalBlock(state);
                         continue;
                     }
+                    else if (state.line.StartsWith("if"))
+                    {
+                        // Part of a sibling conditional, end this block
+                        // Break and handle it in the parent function
+                        state.blockReadLine = true;
+                        break;
+                    }
                     else
                     {
                         // Part of the current block

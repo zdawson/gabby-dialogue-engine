@@ -194,8 +194,8 @@ namespace GabbyDialogue
         private bool RunCondition(int jump, string callback, string[] parameters)
         {
             bool result;
-            bool success = scriptingHandler.OnCondition(callback, parameters, out result);
-            if (!success)
+            bool handled = scriptingHandler.OnCondition(callback, parameters, out result);
+            if (!handled)
             {
                 Debug.LogWarning($"Unhandled conditional: {callback}");
                 return false;
