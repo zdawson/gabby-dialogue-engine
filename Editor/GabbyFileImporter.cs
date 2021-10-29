@@ -7,7 +7,7 @@ using GabbyDialogue;
 
 namespace GabbyDialogue
 {
-    [UnityEditor.AssetImporters.ScriptedImporter(version: 1, ext: "gab")]
+    [UnityEditor.AssetImporters.ScriptedImporter(version: 2, ext: "gab")]
     public class GabbyFileImporter : UnityEditor.AssetImporters.ScriptedImporter
     {
         public override void OnImportAsset(UnityEditor.AssetImporters.AssetImportContext ctx)

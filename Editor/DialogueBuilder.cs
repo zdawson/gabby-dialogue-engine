@@ -8,12 +8,14 @@ namespace GabbyDialogue
         {
             public string characterName;
             public string dialogueName;
+            public Dictionary<string, string> tags;
             public List<DialogueBlockData> blocks = new List<DialogueBlockData>();
 
-            public DialogueData(string characterName, string dialogueName)
+            public DialogueData(string characterName, string dialogueName, Dictionary<string, string> tags)
             {
                 this.characterName = characterName;
                 this.dialogueName = dialogueName;
+                this.tags = new Dictionary<string, string>(tags);
             }
         }
 
@@ -53,8 +55,10 @@ namespace GabbyDialogue
             block.blockID = nextBlockID++;
             dialogueBlockStack.Push(block);
 
-            DialogueData dialogueData = new DialogueData(characterName, dialogueName);
+            DialogueData dialogueData = new DialogueData(characterName, dialogueName, nextLineTags);
             curDialogue = dialogueData;
+
+            nextLineTags.Clear();
             
             return true;
         }
@@ -136,7 +140,6 @@ namespace GabbyDialogue
 
         public void OnDialogueDefinitionEnd()
         {
-            // TODO Add an end line to the main block if it wasn't 
             curDialogue.blocks.Add(dialogueBlockStack.Pop());
 
             curDialogue.blocks.Sort((a, b) => a.blockID - b.blockID);
@@ -146,7 +149,7 @@ namespace GabbyDialogue
                 dialogueBlocks.Add(new DialogueBlock(blockData.blockID, blockData.lines.ToArray()));
             }
             
-            Dialogue dialogue = new Dialogue(curDialogue.characterName, curDialogue.dialogueName, dialogueBlocks.ToArray());
+            Dialogue dialogue = new Dialogue(curDialogue.characterName, curDialogue.dialogueName, curDialogue.tags, dialogueBlocks.ToArray());
             dialogues.Add(dialogue);
         }
 

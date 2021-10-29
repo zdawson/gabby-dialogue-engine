@@ -46,6 +46,7 @@ namespace GabbyDialogue
         public void StartDialogue(Dialogue dialogue)
         {
             SetDialogue(dialogue);
+            dialogueHandler.OnDialogueStart(dialogue);
             NextLine();
         }
 
@@ -138,7 +139,10 @@ namespace GabbyDialogue
                         Debug.LogWarning($"Dialogue jump target does not exist: {characterName}.{dialogueName}");
                         break;
                     }
-                    StartDialogue(dialogue);
+                    // Jump to the new dialogue
+                    SetDialogue(dialogue);
+                    dialogueHandler.OnDialogueJump(dialogue);
+                    NextLine();
                     break;
                 }
                 case LineType.CONDITIONAL:

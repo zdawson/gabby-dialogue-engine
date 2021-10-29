@@ -68,14 +68,15 @@ namespace GabbyDialogue
         private string dialogueName;
         [SerializeField]
         private DialogueBlock[] dialogueBlocks;
+        [SerializeField]
+        private StringDictionary tags;
 
-        // TODO properties? How to handle arrays, objects?
-
-        public Dialogue(string characterName, string dialogueName, DialogueBlock[] dialogueBlocks)
+        public Dialogue(string characterName, string dialogueName, Dictionary<string, string> tags, DialogueBlock[] dialogueBlocks)
         {
             this.characterName = characterName;
             this.dialogueName = dialogueName;
             this.dialogueBlocks = dialogueBlocks;
+            this.tags = new StringDictionary(tags);
         }
 
         public DialogueBlock GetMainDialogueBlock()
@@ -90,5 +91,6 @@ namespace GabbyDialogue
 
         public string DialogueName => dialogueName;
         public string CharacterName => characterName;
+        public Dictionary<string, string> Tags => tags;
     }
 }
