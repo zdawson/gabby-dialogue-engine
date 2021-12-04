@@ -65,21 +65,21 @@ namespace GabbyDialogue
 
         public bool OnDialogueLine(string characterName, string text)
         {
-            DialogueLine line = CreateLine(LineType.DIALOGUE, new string[]{characterName, text});
+            DialogueLine line = CreateLine(LineType.Dialogue, new string[]{characterName, text});
             dialogueBlockStack.Peek().lines.Add(line);
             return true;
         }
 
         public bool OnContinuedDialogue(string characterName, string text)
         {
-            DialogueLine line = CreateLine(LineType.CONTINUED_DIALOGUE, new string[]{text});
+            DialogueLine line = CreateLine(LineType.ContinuedDialogue, new string[]{text});
             dialogueBlockStack.Peek().lines.Add(line);
             return true;
         }
 
         public bool OnNarratedDialogue(string characterName, string text)
         {
-            DialogueLine line = CreateLine(LineType.NARRATED_DIALOGUE, new string[]{text});
+            DialogueLine line = CreateLine(LineType.NarratedDialogue, new string[]{text});
             dialogueBlockStack.Peek().lines.Add(line);
             return true;
         }
@@ -125,7 +125,7 @@ namespace GabbyDialogue
                 curDialogue.blocks.Add(block);
             }
 
-            DialogueLine line = CreateLine(LineType.OPTION, lineData);
+            DialogueLine line = CreateLine(LineType.Option, lineData);
             dialogueBlockStack.Peek().lines.Add(line);
 
             return true;
@@ -133,7 +133,7 @@ namespace GabbyDialogue
 
         public bool OnEnd()
         {
-            DialogueLine line = CreateLine(LineType.END, new string[0]);
+            DialogueLine line = CreateLine(LineType.End, new string[0]);
             dialogueBlockStack.Peek().lines.Add(line);
             return true;
         }
@@ -158,14 +158,14 @@ namespace GabbyDialogue
             List<string> lineData = new List<string>();
             lineData.Add(actionName);
             lineData.AddRange(parameters);
-            DialogueLine line = CreateLine(LineType.ACTION, lineData.ToArray());
+            DialogueLine line = CreateLine(LineType.Action, lineData.ToArray());
             dialogueBlockStack.Peek().lines.Add(line);
             return true;
         }
 
         public bool OnJump(string characterName, string dialogueName)
         {
-            DialogueLine line = CreateLine(LineType.JUMP, new string[]{characterName, dialogueName});
+            DialogueLine line = CreateLine(LineType.Jump, new string[]{characterName, dialogueName});
             dialogueBlockStack.Peek().lines.Add(line);
             return true;
         }
@@ -211,7 +211,7 @@ namespace GabbyDialogue
 
             lineData.Insert(0, dataLayoutString);
 
-            DialogueLine line = CreateLine(LineType.CONDITIONAL, lineData.ToArray());
+            DialogueLine line = CreateLine(LineType.Conditional, lineData.ToArray());
             dialogueBlockStack.Peek().lines.Add(line);
 
             return true;

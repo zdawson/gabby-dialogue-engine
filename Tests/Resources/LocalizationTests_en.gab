@@ -1,0 +1,15 @@
+gabby 0.2
+language english
+
+[Test.LocalizedDialogue]
+    - Line 1
+    - Line 2
+
+[Test.LocalizedJump]
+   >> Test.LocalizedJumpTarget
+
+[Test.LocalizedJumpTarget]
+    - Jump target
+
+[Test.DialogueThatOnlyExistsInEnglish]
+    - Line 1

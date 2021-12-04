@@ -14,5 +14,6 @@
   "author": {
     "name": "Zack Dawson",
     "url": "https://github.com/zdawson/gabby-dialogue"
-  }
+  },
+  "type": "library"
 }

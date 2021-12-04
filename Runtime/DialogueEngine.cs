@@ -7,6 +7,11 @@ namespace GabbyDialogue
 {
     public class DialogueEngine
     {
+        public struct LineIndex
+        {
+            public int block;
+            public int line;
+        }
         [Serializable]
         public class DialogueEngineState
         {
@@ -73,47 +78,60 @@ namespace GabbyDialogue
             HandleLine(line);
         }
 
+        public void RestoreDialogue(Dialogue dialogue, DialogueEngineState state)
+        {
+            SetDialogue(dialogue);
+            this.state = state;
+            dialogueHandler.OnDialogueStart(dialogue);
+            HandleLine(state.dialogueBlock.Lines[state.currentLine - 1]);
+        }
+
+        public DialogueEngineState GetDialogueEngineState()
+        {
+            return state;
+        }
+
         private void HandleLine(DialogueLine line)
         {
             // Appended dialogue continues narration, anything else unsets it
-            if (state.isNarration && (line.LineType != LineType.CONTINUED_DIALOGUE))
+            if (state.isNarration && (line.LineType != LineType.ContinuedDialogue))
             {
                 state.isNarration = false;
             };
 
             switch (line.LineType)
             {
-                case LineType.DIALOGUE:
+                case LineType.Dialogue:
                 {
                     string characterName = line.LineData[0];
                     string text = line.LineData[1];
                     dialogueHandler.OnDialogueLine(characterName, text, line.Tags);
                     break;
                 }
-                case LineType.NARRATED_DIALOGUE:
+                case LineType.NarratedDialogue:
                 {
                     string text = line.LineData[0];
                     dialogueHandler.OnDialogueLine("", text, line.Tags);
                     break;
                 }
-                case LineType.CONTINUED_DIALOGUE:
+                case LineType.ContinuedDialogue:
                 {
                     string text = line.LineData[0];
                     dialogueHandler.OnContinuedDialogue(text, line.Tags);
                     break;
                 }
-                case LineType.OPTION:
+                case LineType.Option:
                 {
                     blockNextLine = true;
                     HandleOptionAsync(line);
                     break;
                 }
-                case LineType.END:
+                case LineType.End:
                 {
                     dialogueHandler.OnDialogueEnd();
                     break;
                 }
-                case LineType.ACTION:
+                case LineType.Action:
                 {
                     bool autoAdvance = true;
                     if (scriptingHandler != null)
@@ -125,11 +143,11 @@ namespace GabbyDialogue
                     }
                     if (autoAdvance)
                     {
-                        NextLine();   
+                        NextLine();
                     }
                     break;
                 }
-                case LineType.JUMP:
+                case LineType.Jump:
                 {
                     string characterName = line.LineData[0];
                     string dialogueName = line.LineData[1];
@@ -145,7 +163,7 @@ namespace GabbyDialogue
                     NextLine();
                     break;
                 }
-                case LineType.CONDITIONAL:
+                case LineType.Conditional:
                 {
                     // Need to process the conditional layout due to current format limitations
                     string layoutString = line.LineData[0];

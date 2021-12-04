@@ -12,7 +12,7 @@ namespace GabbyDialogue
     {
         public override void OnImportAsset(UnityEditor.AssetImporters.AssetImportContext ctx)
         {
-            GabbyDialogueAsset asset = ScriptableObject.CreateInstance<GabbyDialogueAsset>();
+            DialogueScript asset = ScriptableObject.CreateInstance<DialogueScript>();
 
             DialogueBuilder builder = new DialogueBuilder();
             bool success = DialogParser.ParseGabbyDialogueScript(ctx.assetPath, builder);

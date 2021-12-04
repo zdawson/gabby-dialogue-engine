@@ -1,0 +1,13 @@
+gabby 0.2
+language localized
+
+[Test.LocalizedDialogue]
+    - Localized line 1
+    - Localized line 2
+    - Localized line 3
+
+[Test.LocalizedJump]
+   >> Test.LocalizedJumpTarget
+
+[Test.LocalizedJumpTarget]
+    - Localized jump target

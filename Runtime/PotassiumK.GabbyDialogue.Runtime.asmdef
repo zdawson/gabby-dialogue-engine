@@ -1,11 +1,8 @@
 {
-    "name": "GabbyDialogue.Editor",
-    "references": [
-        "GUID:09e2e565717208f46ae987e53e78fac4"
-    ],
-    "includePlatforms": [
-        "Editor"
-    ],
+    "name": "PotassiumK.GabbyDialogue.Runtime",
+    "rootNamespace": "",
+    "references": [],
+    "includePlatforms": [],
     "excludePlatforms": [],
     "allowUnsafeCode": false,
     "overrideReferences": false,

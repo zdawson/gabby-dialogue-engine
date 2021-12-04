@@ -6,14 +6,14 @@ namespace GabbyDialogue
 {    
     public enum LineType
     {
-        DIALOGUE, // [char, text]
-        NARRATED_DIALOGUE,
-        CONTINUED_DIALOGUE, // [text]
-        OPTION, // [opt, jump, opt, jump, ...]
-        ACTION, // [func, param, ...]
-        JUMP, // [target]
-        END, // nothing
-        CONDITIONAL // [[n,n,...,e], callback, param, param, ..., jump, callback, ..., elsejump]
+        Dialogue, // [char, text]
+        NarratedDialogue,
+        ContinuedDialogue, // [text]
+        Option, // [opt, jump, opt, jump, ...]
+        Action, // [func, param, ...]
+        Jump, // [target]
+        End, // nothing
+        Conditional // [[n,n,...,e], callback, param, param, ..., jump, callback, ..., elsejump]
     }
 
     [Serializable]
