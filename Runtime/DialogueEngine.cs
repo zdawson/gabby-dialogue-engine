@@ -26,15 +26,13 @@ namespace GabbyDialogue
             public DialogueEngineState parentDialogueState = null;
         }
 
-        private IDialogueHandler dialogueHandler;
-        private AbstractScriptingHandler scriptingHandler;
+        private IDialogueEventHandler dialogueHandler;
         private DialogueEngineState state;
         private bool blockNextLine = false;
 
-        public DialogueEngine(IDialogueHandler dialogueHandler, AbstractScriptingHandler scriptingHandler = null)
+        public DialogueEngine(IDialogueEventHandler dialogueHandler)
         {
             this.dialogueHandler = dialogueHandler;
-            this.scriptingHandler = scriptingHandler;
         }
 
         private void SetDialogue(Dialogue dialogue)
@@ -76,19 +74,6 @@ namespace GabbyDialogue
             }
             DialogueLine line = state.dialogueBlock.Lines[state.currentLine - 1];
             HandleLine(line);
-        }
-
-        public void RestoreDialogue(Dialogue dialogue, DialogueEngineState state)
-        {
-            SetDialogue(dialogue);
-            this.state = state;
-            dialogueHandler.OnDialogueStart(dialogue);
-            HandleLine(state.dialogueBlock.Lines[state.currentLine - 1]);
-        }
-
-        public DialogueEngineState GetDialogueEngineState()
-        {
-            return state;
         }
 
         private void HandleLine(DialogueLine line)
@@ -134,13 +119,12 @@ namespace GabbyDialogue
                 case LineType.Action:
                 {
                     bool autoAdvance = true;
-                    if (scriptingHandler != null)
-                    {
-                        string actionName = line.LineData[0];
-                        List<string> actionParameters = new List<string>(line.LineData);
-                        actionParameters.RemoveAt(0);
-                        autoAdvance = scriptingHandler.OnAction(actionName, actionParameters);
-                    }
+                    string actionName = line.LineData[0];
+                    List<string> actionParameters = new List<string>(line.LineData);
+                    actionParameters.RemoveAt(0);
+
+                    autoAdvance = dialogueHandler.OnAction(actionName, actionParameters);
+
                     if (autoAdvance)
                     {
                         NextLine();
@@ -176,11 +160,11 @@ namespace GabbyDialogue
                             int numParams = Convert.ToInt32(blocks[i]);
                             int jump = Convert.ToInt32(line.LineData[curPosition]);
                             string callback = line.LineData[curPosition + 1];
-                            string[] parameters = line.LineData.Skip(curPosition + 2).Take(numParams).ToArray();
+                            List<string> parameters = new List<string>(line.LineData.Skip(curPosition + 2).Take(numParams));
                             curPosition += 2 + numParams;
 
                             // Run the callback and see if the condition passes
-                            if (RunCondition(jump, callback, parameters))
+                            if (dialogueHandler.OnCondition(callback, parameters))
                             {
                                 PushDialogueBlock(jump);
                                 break;
@@ -211,19 +195,6 @@ namespace GabbyDialogue
             };
             this.state = nextBlockState;
             blockNextLine = false;
-        }
-
-        private bool RunCondition(int jump, string callback, string[] parameters)
-        {
-            bool result;
-            bool handled = scriptingHandler.OnCondition(callback, parameters, out result);
-            if (!handled)
-            {
-                Debug.LogWarning($"Unhandled conditional: {callback}");
-                return false;
-            }
-
-            return result;
         }
 
         private async void HandleOptionAsync(DialogueLine line)

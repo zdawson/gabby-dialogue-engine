@@ -4,10 +4,10 @@ using UnityEngine;
 
 namespace GabbyDialogue
 {
-    public abstract class SimpleDialogueSystem : IDialogueHandler
+    public abstract class SimpleDialogueSystem : IDialogueEventHandler
     {
-
         protected DialogueEngine dialogueEngine;
+        protected SimpleScriptEventHandler scriptEventHandler;
 
         private List<DialogueScript> dialogueScripts = new List<DialogueScript>();
         private Dictionary<int, List<Dialogue>> dialogues = new Dictionary<int, List<Dialogue>>(); // Store multiple values per key
@@ -18,6 +18,7 @@ namespace GabbyDialogue
         public SimpleDialogueSystem()
         {
             dialogueEngine = new DialogueEngine(this);
+            scriptEventHandler = new SimpleScriptEventHandler();
         }
 
         public virtual void PlayDialogue(string characterName, string dialogueName)
@@ -29,6 +30,12 @@ namespace GabbyDialogue
                 return;
             }
 
+            PlayDialogue(dialogue);
+        }
+
+        public virtual void PlayDialogue(Dialogue dialogue)
+        {
+            Debug.Assert(dialogue != null);
             dialogueEngine.StartDialogue(dialogue);
         }
 
@@ -39,6 +46,8 @@ namespace GabbyDialogue
 
         public void AddScript(DialogueScript dialogueScript)
         {
+            Debug.Assert(dialogueScript != null);
+
             dialogueScripts.Add(dialogueScript);
             foreach (Dialogue dialogue in dialogueScript.dialogues)
             {
@@ -54,6 +63,8 @@ namespace GabbyDialogue
 
         public void RemoveScript(DialogueScript dialogueScript)
         {
+            Debug.Assert(dialogueScript != null);
+
             dialogueScripts.Remove(dialogueScript);
             foreach (Dialogue dialogue in dialogueScript.dialogues)
             {
@@ -63,7 +74,7 @@ namespace GabbyDialogue
 
         /// <summary>
         /// Sets the language to use for dialogue, and an optional fallback language if a dialogue can't be found.
-        /// If a dialogue is playing, it will continue to play in the original language.
+        /// If a dialogue is already in progress, it must be restarted before the language change will take effect.
         /// </summary>
         public void SetLanguage(string language, string fallbackLanguage = "")
         {
@@ -73,6 +84,8 @@ namespace GabbyDialogue
 
         private void AddDialogue(string language, Dialogue dialogue)
         {
+            Debug.Assert(dialogue != null);
+
             int hashCode = GetDialogueHashCode(language, dialogue.CharacterName, dialogue.DialogueName);
 
             List<Dialogue> existingDialogues;
@@ -105,6 +118,7 @@ namespace GabbyDialogue
 
         private void RemoveDialogue(Dialogue dialogue)
         {
+            Debug.Assert(dialogue != null);
             // TODO
         }
 
@@ -156,6 +170,16 @@ namespace GabbyDialogue
         public abstract void OnDialogueLine(string characterName, string dialogueText, Dictionary<string, string> tags);
         public abstract void OnDialogueStart(Dialogue dialogue);
         public abstract Task<int> OnOptionLine(string[] optionsText);
+
+        public virtual bool OnAction(string actionName, List<string> parameters)
+        {
+            return scriptEventHandler.OnAction(actionName, parameters);
+        }
+
+        public virtual bool OnCondition(string conditionalName, List<string> parameters)
+        {
+            return scriptEventHandler.OnConditional(conditionalName, parameters);
+        }
 
         private static int GetDialogueHashCode(string language, string characterName, string dialogueName)
         {

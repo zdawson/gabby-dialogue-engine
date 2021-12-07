@@ -1,0 +1,22 @@
+gabby 0.2
+language english
+
+[Test.SimplePerformanceTest]
+    - Line 1
+    + Line 2
+    <tag1, tag2, tag3, tag4, tag5>
+    - Line 3
+    - Line 4
+    - Line 5
+    - Line 6
+    - Line 7
+
+[Test.JumpPerformanceTest]
+    >> Test.PerformanceTestJumpTarget
+
+[Test.PerformanceTestJumpTarget]
+    - End
+
+[Test.ActionPerformanceTest]
+    > testAction()
+    > testAction(1, 1.0, "s", false, 1.0)

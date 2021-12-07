@@ -35,11 +35,6 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
     private Queue<DialogueEvent> dialogueEventQueue = new Queue<DialogueEvent>();
     public Queue<DialogueEvent> DialogueEventQueue => dialogueEventQueue;
 
-    public UnitTestDialogueSystem()
-    {
-        dialogueEngine = new DialogueEngine(this);
-    }
-
     public override void PlayDialogue(string characterName, string dialogueName)
     {
         Assert.IsNotNull(GetDialogue(characterName, dialogueName), "Dialogue [{characterName}.{dialogueName}] not loaded. (language: '{language}', fallback: '{fallbackLanguage}')");
