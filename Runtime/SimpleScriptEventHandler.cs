@@ -20,19 +20,19 @@ namespace GabbyDialogue
             public MethodInfo methodInfo;
         }
 
-        private List<AbstractScriptEventHandler> scriptEventHandlers = new List<AbstractScriptEventHandler>();
+        private List<AbstractScriptEventHandler> _scriptEventHandlers = new List<AbstractScriptEventHandler>();
 
-        private Dictionary<string, ActionHandlerBinding> actionHandlers = new Dictionary<string, ActionHandlerBinding>();
-        private Dictionary<string, ConditionalHandlerBinding> conditionalHandlers = new Dictionary<string, ConditionalHandlerBinding>();
+        private Dictionary<string, ActionHandlerBinding> _actionHandlers = new Dictionary<string, ActionHandlerBinding>();
+        private Dictionary<string, ConditionalHandlerBinding> _conditionalHandlers = new Dictionary<string, ConditionalHandlerBinding>();
 
         public void RegisterScriptEventHandler(AbstractScriptEventHandler scriptEventHandler)
         {
-            if (scriptEventHandlers.Contains(scriptEventHandler))
+            if (_scriptEventHandlers.Contains(scriptEventHandler))
             {
                 Debug.LogWarning($"Script event handler already registered\n{scriptEventHandler.ToString()}");
                 return;
             }
-            scriptEventHandlers.Add(scriptEventHandler);
+            _scriptEventHandlers.Add(scriptEventHandler);
 
             MethodInfo[] methods = scriptEventHandler.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
             foreach (MethodInfo method in methods)
@@ -46,7 +46,7 @@ namespace GabbyDialogue
                     {
                         Debug.LogError($"Return type of action handlers must be void.\nAction handler: {actionName}");
                     }
-                    actionHandlers[actionName] = new ActionHandlerBinding()
+                    _actionHandlers[actionName] = new ActionHandlerBinding()
                     {
                         scriptEventHandler = scriptEventHandler,
                         methodInfo = method,
@@ -63,7 +63,7 @@ namespace GabbyDialogue
                     {
                         Debug.LogError($"Return type of conditional handlers must be bool.\nConditional handler: {conditionalName}");
                     }
-                    conditionalHandlers[conditionalName] = new ConditionalHandlerBinding()
+                    _conditionalHandlers[conditionalName] = new ConditionalHandlerBinding()
                     {
                         scriptEventHandler = scriptEventHandler,
                         methodInfo = method
@@ -76,7 +76,7 @@ namespace GabbyDialogue
         public bool OnAction(string actionName, List<string> parameters)
         {
             ActionHandlerBinding actionHandler;
-            if (!actionHandlers.TryGetValue(actionName, out actionHandler))
+            if (!_actionHandlers.TryGetValue(actionName, out actionHandler))
             {
                 Debug.LogWarning($"Unhandled action: {actionName}");
                 return true;
@@ -97,7 +97,7 @@ namespace GabbyDialogue
         public bool OnConditional(string conditionalName, List<string> parameters)
         {
             ConditionalHandlerBinding conditionalHandler;
-            if (!conditionalHandlers.TryGetValue(conditionalName, out conditionalHandler))
+            if (!_conditionalHandlers.TryGetValue(conditionalName, out conditionalHandler))
             {
                 Debug.LogWarning($"Unhandled conditional: {conditionalName}");
                 return false;

@@ -7,11 +7,6 @@ namespace GabbyDialogue
 {
     public class DialogueEngine
     {
-        public struct LineIndex
-        {
-            public int block;
-            public int line;
-        }
         [Serializable]
         public class DialogueEngineState
         {
@@ -21,23 +16,22 @@ namespace GabbyDialogue
             public DialogueBlock dialogueBlock;
             public string dialogueCharacterName;
             public string dialogueName;
-            public uint currentLine = 0;
-            public bool isNarration = false;
+            public uint currentLineWithinBlock = 0;
             public DialogueEngineState parentDialogueState = null;
         }
 
-        private IDialogueEventHandler dialogueHandler;
-        private DialogueEngineState state;
-        private bool blockNextLine = false;
+        private IDialogueEventHandler _dialogueHandler;
+        private DialogueEngineState _state;
+        private bool _blockNextLine = false;
 
         public DialogueEngine(IDialogueEventHandler dialogueHandler)
         {
-            this.dialogueHandler = dialogueHandler;
+            this._dialogueHandler = dialogueHandler;
         }
 
         private void SetDialogue(Dialogue dialogue)
         {
-            state = new DialogueEngineState
+            _state = new DialogueEngineState
             {
                 dialogue = dialogue,
                 dialogueBlock = dialogue.GetMainDialogueBlock(),
@@ -49,71 +43,77 @@ namespace GabbyDialogue
         public void StartDialogue(Dialogue dialogue)
         {
             SetDialogue(dialogue);
-            dialogueHandler.OnDialogueStart(dialogue);
+            _dialogueHandler.OnDialogueStart(dialogue);
             NextLine();
+        }
+
+        public void EndDialogue()
+        {
+            if (_state == null)
+            {
+                return;
+            }
+            _dialogueHandler.OnDialogueEnd();
+            _state = null;
         }
 
         public void NextLine()
         {
-            if (blockNextLine)
+            if (_state == null || _blockNextLine)
             {
                 return;
             }
 
-            ++state.currentLine;
-            while (state.currentLine > state.dialogueBlock.Lines.Length)
+            ++_state.currentLineWithinBlock;
+
+            // If we've stepped out of the current block, pop blocks until we return to one with more content
+            while (_state.currentLineWithinBlock > _state.dialogueBlock.Lines.Length)
             {
-                if (state.parentDialogueState == null)
+                if (_state.parentDialogueState == null)
                 {
-                    dialogueHandler.OnDialogueEnd();
-                    state = null;
+                    EndDialogue();
                     return;
                 }
-                state = state.parentDialogueState;
-                ++state.currentLine;
+                _state = _state.parentDialogueState;
+                ++_state.currentLineWithinBlock;
             }
-            DialogueLine line = state.dialogueBlock.Lines[state.currentLine - 1];
+
+            DialogueLine line = _state.dialogueBlock.Lines[_state.currentLineWithinBlock - 1];
             HandleLine(line);
         }
 
         private void HandleLine(DialogueLine line)
         {
-            // Appended dialogue continues narration, anything else unsets it
-            if (state.isNarration && (line.LineType != LineType.ContinuedDialogue))
-            {
-                state.isNarration = false;
-            };
-
             switch (line.LineType)
             {
                 case LineType.Dialogue:
                 {
                     string characterName = line.LineData[0];
                     string text = line.LineData[1];
-                    dialogueHandler.OnDialogueLine(characterName, text, line.Tags);
+                    _dialogueHandler.OnDialogueLine(characterName, text, line.Tags);
                     break;
                 }
                 case LineType.NarratedDialogue:
                 {
                     string text = line.LineData[0];
-                    dialogueHandler.OnDialogueLine("", text, line.Tags);
+                    _dialogueHandler.OnDialogueLine("", text, line.Tags);
                     break;
                 }
                 case LineType.ContinuedDialogue:
                 {
                     string text = line.LineData[0];
-                    dialogueHandler.OnContinuedDialogue(text, line.Tags);
+                    _dialogueHandler.OnContinuedDialogue(text, line.Tags);
                     break;
                 }
                 case LineType.Option:
                 {
-                    blockNextLine = true;
+                    _blockNextLine = true;
                     HandleOptionAsync(line);
                     break;
                 }
                 case LineType.End:
                 {
-                    dialogueHandler.OnDialogueEnd();
+                    EndDialogue();
                     break;
                 }
                 case LineType.Action:
@@ -123,7 +123,7 @@ namespace GabbyDialogue
                     List<string> actionParameters = new List<string>(line.LineData);
                     actionParameters.RemoveAt(0);
 
-                    autoAdvance = dialogueHandler.OnAction(actionName, actionParameters);
+                    autoAdvance = _dialogueHandler.OnAction(actionName, actionParameters);
 
                     if (autoAdvance)
                     {
@@ -135,15 +135,15 @@ namespace GabbyDialogue
                 {
                     string characterName = line.LineData[0];
                     string dialogueName = line.LineData[1];
-                    Dialogue dialogue = dialogueHandler.GetDialogue(characterName, dialogueName);
+                    Dialogue dialogue = _dialogueHandler.GetDialogue(characterName, dialogueName);
                     if (dialogue == null)
                     {
-                        Debug.LogWarning($"Dialogue jump target does not exist: {characterName}.{dialogueName}");
+                        Debug.LogError($"Dialogue jump target does not exist: {characterName}.{dialogueName}");
                         break;
                     }
                     // Jump to the new dialogue
                     SetDialogue(dialogue);
-                    dialogueHandler.OnDialogueJump(dialogue);
+                    _dialogueHandler.OnDialogueJump(dialogue);
                     NextLine();
                     break;
                 }
@@ -164,7 +164,7 @@ namespace GabbyDialogue
                             curPosition += 2 + numParams;
 
                             // Run the callback and see if the condition passes
-                            if (dialogueHandler.OnCondition(callback, parameters))
+                            if (_dialogueHandler.OnCondition(callback, parameters))
                             {
                                 PushDialogueBlock(jump);
                                 break;
@@ -187,14 +187,14 @@ namespace GabbyDialogue
         {
             // Push a new dialogue engine state for the block
             DialogueEngineState nextBlockState = new DialogueEngineState {
-                parentDialogueState = this.state,
-                dialogue = this.state.dialogue,
-                dialogueBlock = this.state.dialogue.GetDialogueBlock(blockID),
-                dialogueCharacterName = this.state.dialogueCharacterName,
-                dialogueName = this.state.dialogueName,
+                parentDialogueState = this._state,
+                dialogue = this._state.dialogue,
+                dialogueBlock = this._state.dialogue.GetDialogueBlock(blockID),
+                dialogueCharacterName = this._state.dialogueCharacterName,
+                dialogueName = this._state.dialogueName,
             };
-            this.state = nextBlockState;
-            blockNextLine = false;
+            this._state = nextBlockState;
+            _blockNextLine = false;
         }
 
         private async void HandleOptionAsync(DialogueLine line)
@@ -209,11 +209,11 @@ namespace GabbyDialogue
                 optionsBlocks[i/2] = blockID;
             }
 
-            int selection = await dialogueHandler.OnOptionLine(optionsText);
+            int selection = await _dialogueHandler.OnOptionLine(optionsText);
 
             if (selection < 0 || selection > optionsBlocks.Length)
             {
-                dialogueHandler.OnDialogueEnd();
+                _dialogueHandler.OnDialogueEnd();
             }
 
             PushDialogueBlock(optionsBlocks[selection]);

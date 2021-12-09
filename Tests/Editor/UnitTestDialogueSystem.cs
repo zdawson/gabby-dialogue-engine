@@ -13,12 +13,15 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
         Dialogue,
         ContinuedDialogue,
         Jump,
-        Option
+        Option,
+        Action,
+        Conditional
     }
 
     public class DialogueEvent
     {
         public DialogueEventType eventType;
+        public Dictionary<string, string> tags;
     }
 
     public class DialogueLineEvent : DialogueEvent
@@ -32,14 +35,15 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
         public string jumpTarget;
     }
 
+    public class DialogueActionEvent : DialogueEvent
+    {
+        public string actionName;
+    }
+
     private Queue<DialogueEvent> dialogueEventQueue = new Queue<DialogueEvent>();
     public Queue<DialogueEvent> DialogueEventQueue => dialogueEventQueue;
 
-    public override void PlayDialogue(string characterName, string dialogueName)
-    {
-        Assert.IsNotNull(GetDialogue(characterName, dialogueName), "Dialogue [{characterName}.{dialogueName}] not loaded. (language: '{language}', fallback: '{fallbackLanguage}')");
-        base.PlayDialogue(characterName, dialogueName);
-    }
+    public DialogueEngine DialogueEngine => dialogueEngine;
 
     public new DialogueEvent NextLine()
     {
@@ -64,11 +68,17 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
         return NextLine();
     }
 
+    public void RegisterScriptEventHandler(AbstractScriptEventHandler handler)
+    {
+        this.scriptEventHandler.RegisterScriptEventHandler(handler);
+    }
+
     public override void OnDialogueStart(Dialogue dialogue)
     {
         DialogueEvent dialogueEvent = new DialogueEvent()
         {
-            eventType = DialogueEventType.DialogueStart
+            eventType = DialogueEventType.DialogueStart,
+            tags = dialogue.Tags
         };
         dialogueEventQueue.Enqueue(dialogueEvent);
     }
@@ -88,7 +98,8 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
         {
             eventType = DialogueEventType.Dialogue,
             characterName = characterName,
-            dialogueText = dialogueText
+            dialogueText = dialogueText,
+            tags = tags
         };
         dialogueEventQueue.Enqueue(dialogueEvent);
     }
@@ -98,7 +109,8 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
         DialogueLineEvent dialogueEvent = new DialogueLineEvent()
         {
             eventType = DialogueEventType.ContinuedDialogue,
-            dialogueText = continuedDialogueText
+            dialogueText = continuedDialogueText,
+            tags = tags
         };
         dialogueEventQueue.Enqueue(dialogueEvent);
     }
@@ -111,6 +123,18 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
             jumpTarget = $"{dialogue.CharacterName}.{dialogue.DialogueName}"
         };
         dialogueEventQueue.Enqueue(dialogueEvent);
+    }
+
+    public override bool OnAction(string actionName, List<string> parameters)
+    {
+        DialogueActionEvent dialogueActionEvent = new DialogueActionEvent()
+        {
+            eventType = DialogueEventType.Action,
+            actionName = actionName
+        };
+        dialogueEventQueue.Enqueue(dialogueActionEvent);
+
+        return base.OnAction(actionName, parameters);
     }
 
     public override Task<int> OnOptionLine(string[] optionsText)
@@ -131,13 +155,18 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
         Assert.AreEqual(DialogueEventType.DialogueEnd, dialogueEvent.eventType, "Dialogue event type does not match.");
     }
 
-    public void ExpectLine(string character, string text)
+    public void ExpectLine(string character, string text, Dictionary<string, string> tags = null)
     {
         DialogueEvent dialogueEvent = Next();
         Assert.AreEqual(DialogueEventType.Dialogue, dialogueEvent.eventType, "Dialogue event type does not match.");
         DialogueLineEvent dialogueLineEvent = dialogueEvent as DialogueLineEvent;
         Assert.AreEqual(character, dialogueLineEvent.characterName, "Character name does not match.");
         Assert.AreEqual(text, dialogueLineEvent.dialogueText, "Dialogue text does not match.");
+        if (tags == null)
+        {
+            // Check that tags are empty
+            // Assert.IsTrue(dialogueLineEvent.);
+        }
     }
 
     public void ExpectContinuedLine(string continuedDialogueText)
@@ -154,5 +183,14 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
         Assert.AreEqual(DialogueEventType.Jump, dialogueEvent.eventType, "Dialogue event type does not match.");
         DialogueJumpEvent dialogueJumpEvent = dialogueEvent as DialogueJumpEvent;
         Assert.AreEqual(jumpTarget, dialogueJumpEvent.jumpTarget, "Dialogue jump target does not match.");
+    }
+
+    public void ExpectAction(ActionTestScriptEventHandler handler, string actionName, string actionHandlerName = "")
+    {
+        DialogueEvent dialogueEvent = Next();
+        Assert.AreEqual(DialogueEventType.Action, dialogueEvent.eventType, "Dialogue event type does not match.");
+        DialogueActionEvent dialogueActionEvent = dialogueEvent as DialogueActionEvent;
+        Assert.AreEqual(actionName, dialogueActionEvent.actionName, "Action name does not match.");
+        Assert.AreEqual(actionHandlerName == "" ? actionName : actionHandlerName, handler.actionCalled, "Action handler name does not match.");
     }
 }

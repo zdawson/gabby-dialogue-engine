@@ -5,7 +5,8 @@
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Unity.PerformanceTesting",
-        "PotassiumK.GabbyDialogue.Runtime"
+        "PotassiumK.GabbyDialogue.Runtime",
+        "PotassiumK.GabbyDialogue.Editor"
     ],
     "includePlatforms": [
         "Editor"

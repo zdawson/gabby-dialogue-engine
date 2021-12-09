@@ -1,0 +1,8 @@
+gabby 0.2
+language english
+
+[Test.DuplicateDialogueNameInSameFile]
+    - First
+
+[Test.DuplicateDialogueNameInSameFile]
+    - Second

@@ -37,7 +37,7 @@ namespace GabbyDialogue
         }
 
         public string language = null;
-        public string version = null;
+        public System.Version version = null;
         public Dictionary<string, string> nextLineTags = new Dictionary<string, string>();
 
         private List<Dialogue> dialogues = new List<Dialogue>();
@@ -59,7 +59,7 @@ namespace GabbyDialogue
             curDialogue = dialogueData;
 
             nextLineTags.Clear();
-            
+
             return true;
         }
 
@@ -99,7 +99,7 @@ namespace GabbyDialogue
             {
                 dialogueBlockStack.Pop();
             }
-            
+
             DialogueBlockData block = new DialogueBlockData();
             block.blockID = nextBlockID++;
             dialogueBlockStack.Push(block);
@@ -148,7 +148,7 @@ namespace GabbyDialogue
             {
                 dialogueBlocks.Add(new DialogueBlock(blockData.blockID, blockData.lines.ToArray()));
             }
-            
+
             Dialogue dialogue = new Dialogue(curDialogue.characterName, curDialogue.dialogueName, curDialogue.tags, dialogueBlocks.ToArray());
             dialogues.Add(dialogue);
         }
@@ -268,7 +268,7 @@ namespace GabbyDialogue
             return true;
         }
 
-        public void SetVersion(string version)
+        public void SetVersion(System.Version version)
         {
             this.version = version;
         }

@@ -9,11 +9,11 @@ namespace GabbyDialogue
         protected DialogueEngine dialogueEngine;
         protected SimpleScriptEventHandler scriptEventHandler;
 
-        private List<DialogueScript> dialogueScripts = new List<DialogueScript>();
-        private Dictionary<int, List<Dialogue>> dialogues = new Dictionary<int, List<Dialogue>>(); // Store multiple values per key
+        protected List<DialogueScript> dialogueScripts = new List<DialogueScript>();
+        protected Dictionary<int, List<Dialogue>> dialogues = new Dictionary<int, List<Dialogue>>(); // Store multiple values per key
 
-        private string language = "";
-        private string fallbackLanguage = "";
+        private string _language = "";
+        private string _fallbackLanguage = "";
 
         public SimpleDialogueSystem()
         {
@@ -26,7 +26,7 @@ namespace GabbyDialogue
             Dialogue dialogue = GetDialogue(characterName, dialogueName);
             if (dialogue == null)
             {
-                Debug.LogError($"Dialogue [{characterName}.{dialogueName}] not loaded.\nlanguage: '{language}'. fallback: '{fallbackLanguage}'.");
+                Debug.LogError($"Dialogue [{characterName}.{dialogueName}] not loaded.\nlanguage: '{_language}'. fallback: '{_fallbackLanguage}'.");
                 return;
             }
 
@@ -37,6 +37,11 @@ namespace GabbyDialogue
         {
             Debug.Assert(dialogue != null);
             dialogueEngine.StartDialogue(dialogue);
+        }
+
+        public virtual void EndDialogue()
+        {
+            dialogueEngine.EndDialogue();
         }
 
         public virtual void NextLine()
@@ -55,9 +60,9 @@ namespace GabbyDialogue
             }
 
             // If the language hasn't been set yet, default to whatever the script is using
-            if (language == "")
+            if (_language == "")
             {
-                language = dialogueScript.language;
+                _language = dialogueScript.language;
             }
         }
 
@@ -68,18 +73,8 @@ namespace GabbyDialogue
             dialogueScripts.Remove(dialogueScript);
             foreach (Dialogue dialogue in dialogueScript.dialogues)
             {
-                dialogues.Remove(GetDialogueHashCode(dialogueScript.language, dialogue.CharacterName, dialogue.DialogueName));
+                RemoveDialogue(dialogueScript.language, dialogue);
             }
-        }
-
-        /// <summary>
-        /// Sets the language to use for dialogue, and an optional fallback language if a dialogue can't be found.
-        /// If a dialogue is already in progress, it must be restarted before the language change will take effect.
-        /// </summary>
-        public void SetLanguage(string language, string fallbackLanguage = "")
-        {
-            this.language = language;
-            this.fallbackLanguage = fallbackLanguage;
         }
 
         private void AddDialogue(string language, Dialogue dialogue)
@@ -95,47 +90,62 @@ namespace GabbyDialogue
                 return;
             }
 
-            for (int i = existingDialogues.Count; i >= 0; --i)
+            for (int i = existingDialogues.Count - 1; i >= 0; --i)
             {
                 Dialogue other = existingDialogues[i];
                 if (dialogue.CharacterName == other.CharacterName
-                && dialogue.DialogueName == other.DialogueName)
+                 && dialogue.DialogueName == other.DialogueName)
                 {
-                    // The dialogue is already loaded, reload it in place
+                    // The dialogue is already loaded, don't reload it
                     // NOTE: This will not handle hash collisions between different languages where the character and dialogue names are the same
                     //       Ie. where hash(lang1.character.dialogue) == hash(lang2.character.dialogue)
-                    // TODO unit test this
-                    existingDialogues.RemoveAt(i);
-                    existingDialogues.Insert(i, dialogue);
+                    Debug.LogWarning($"Duplicate dialogue names, ignoring\n[{dialogue.CharacterName}.{dialogue.DialogueName}]");
                     return;
                 }
             }
 
             // The dialogue is not already loaded, it's just a hash collision. Add it to the list.
-            // TODO unit test this
             existingDialogues.Add(dialogue);
         }
 
-        private void RemoveDialogue(Dialogue dialogue)
+        private void RemoveDialogue(string language, Dialogue dialogue)
         {
             Debug.Assert(dialogue != null);
-            // TODO
+
+            int hashCode = GetDialogueHashCode(language, dialogue.CharacterName, dialogue.DialogueName);
+
+            List<Dialogue> existingDialogues;
+            if (!dialogues.TryGetValue(hashCode, out existingDialogues))
+            {
+                return;
+            }
+
+            for (int i = existingDialogues.Count - 1; i >= 0; --i)
+            {
+                Dialogue other = existingDialogues[i];
+                if (dialogue == other)
+                {
+                    existingDialogues.RemoveAt(i);
+                    return;
+                }
+            }
         }
 
-        public void RemoveScriptsByLanguage(string language)
+        private void RemoveAll()
         {
-            // TODO iterate over every dialogue by script and unload by language
+            dialogues.Clear();
+            dialogueScripts.Clear();
         }
 
         public Dialogue GetDialogue(string characterName, string dialogueName)
         {
-            Dialogue result = GetDialogue(language, characterName, dialogueName);
+            Dialogue result = GetDialogue(_language, characterName, dialogueName);
             if (result != null)
             {
                 return result;
             }
 
-            return GetDialogue(fallbackLanguage, characterName, dialogueName);
+            return GetDialogue(_fallbackLanguage, characterName, dialogueName);
         }
 
         private Dialogue GetDialogue(string language, string characterName, string dialogueName)
@@ -185,5 +195,18 @@ namespace GabbyDialogue
         {
             return $"{language}:{characterName}:{dialogueName}".GetHashCode();
         }
+
+        /// <summary>
+        /// Sets the language to use for dialogue, and an optional fallback language if a dialogue can't be found.
+        /// If a dialogue is already in progress, it must be restarted before the language change will take effect.
+        /// </summary>
+        public void SetLanguage(string language, string fallbackLanguage = "")
+        {
+            this._language = language;
+            this._fallbackLanguage = fallbackLanguage;
+        }
+
+        public string GetLanguage() => _language;
+        public string GetFallbackLanguage() => _fallbackLanguage;
     }
 }

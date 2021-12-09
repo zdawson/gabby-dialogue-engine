@@ -1,0 +1,26 @@
+gabby 0.2
+language english
+
+<testTag, anotherTag>
+[Test.TestDialogueTags]
+    - Line 1
+
+[Test.TestLineTags]
+    <testTag>
+    - Line 1
+    <secondTag, thirdTag>
+    + Line 2
+
+[Test.TestInlineTags]
+    (Test, testTag) Line 1
+
+[Test.TestOverwritingTags]
+    <tagKey:tagValue2, anotherTag>
+    (Test, tagKey:tagValue, tagWithoutValue) Line 1
+    <tagKey:tagValue, tagWithoutValue>
+    <tagKey:tagValue2, anotherTag>
+    - Line 2
+
+[Test.TestTagValues]
+    <stringTag:value, stringTagWithSymbols:"a,b. <>", boolTag: false, intTag:0, floatTag:0.0>
+    - Line 1

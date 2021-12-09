@@ -8,6 +8,9 @@ namespace GabbyDialogue
 {
     public class DialogParser
     {
+        private static readonly Version minimumSupportedVersion = new Version("0.2");
+        private static readonly Version maximumSupportedVersion = new Version("0.2");
+
         private class ParserState
         {
             public string rawLine;
@@ -20,7 +23,7 @@ namespace GabbyDialogue
             public string lastCharacter;
             public bool isParsingDialogue = false;
             public string assetPath;
-            
+
         }
 
         // TODO use regex? Would be nicer for multi-character line designators, or overloaded designators
@@ -524,7 +527,16 @@ namespace GabbyDialogue
             match = Regex.Match(state.line, validateVersion);
             if (match.Success)
             {
-                string version = match.Groups["v"].Value;
+                string strVersion = match.Groups["v"].Value;
+                Version version = new Version(strVersion);
+                if (version.CompareTo(minimumSupportedVersion) < 0)
+                {
+                    Debug.LogWarning($"Dialogue script version {version} is older than the minimum supported version {minimumSupportedVersion}");
+                }
+                else if (version.CompareTo(maximumSupportedVersion) > 0)
+                {
+                    Debug.LogWarning($"Dialogue script version {version} is newer than the maximum supported version {maximumSupportedVersion}");
+                }
                 state.builder.SetVersion(version);
                 return true;
             }
@@ -553,7 +565,7 @@ namespace GabbyDialogue
                 // Remove quotes from quoted string parameters
                 Match quotedStringMatch = Regex.Match(value, regexQuotedString);
                 if (quotedStringMatch.Success)
-                {   
+                {
                     value = value.Substring(1, value.Length - 2);
                 }
                 parameters.Add(value);

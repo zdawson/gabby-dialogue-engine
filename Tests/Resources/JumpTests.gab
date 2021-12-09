@@ -1,0 +1,14 @@
+gabby 0.2
+language english
+
+[Test.TestJumpInSameFile]
+    >> Test.TestJumpInSameFileTarget
+
+[Test.TestJumpInSameFileTarget]
+    - Same File
+
+[Test.TestJumpInAnotherFile]
+    >> Test.TestJumpInAnotherFileTarget
+
+[Test.TestJumpToNonExistentDialogueFails]
+    >> Test.TestJumpToNonExistentDialogueFailsTarget

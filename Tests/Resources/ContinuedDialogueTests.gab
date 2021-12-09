@@ -1,9 +1,0 @@
-gabby 0.2
-language english
-
-[Test.SimpleContinuedDialogue]
-    - Line 1
-    + Continued line
-
-[Test.ContinuedDialogueOnFirstLine]
-    + Line 1

@@ -1,0 +1,51 @@
+gabby 0.2
+language english
+
+[Test.TestSimple]
+    > TestSimple()
+
+[Test.TestActionWithDifferentNameThanHandler]
+    > TestActionWithDifferentNameThanHandler()
+
+[Test.TestString]
+    > TestString("Test")
+
+[Test.TestBool]
+    > TestBool(true)
+
+[Test.TestInt]
+    > TestInt(1)
+
+[Test.TestUint]
+    > TestUint(1)
+
+[Test.TestFloat]
+    > TestFloat(1.0)
+
+[Test.TestDouble]
+    > TestDouble(1.0)
+
+[Test.TestMultipleParameters]
+    > TestMultipleParameters("Test", 1, 1.0, true)
+
+[Test.TestDefaultParameters]
+    > TestDefaultParameters()
+    > TestDefaultParameters("Test")
+
+[Test.TestMissingParametersFails]
+    > TestMultipleParameters("Test", 1)
+
+[Test.TestTooManyParametersFails]
+    > TestMultipleParameters("Test", 1, 1.0, true, true)
+
+[Test.TestPassingWrongTypeFails]
+    > TestInt("Test")
+
+[Test.TestNegativeUintFails]
+    > TestUint(-1)
+
+[Test.TestPassingFloatToIntFails]
+    > TestInt(1.0)
+
+[Test.TestPassingIntToBoolFails]
+    > TestBool(1)

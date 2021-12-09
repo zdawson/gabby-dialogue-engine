@@ -1,6 +1,8 @@
 gabby 0.2
 language english
 
+// Character and implicit character dialogue tests
+
 [Test.SimpleDialogue]
     (Test) Line 1
 
@@ -32,3 +34,34 @@ language english
     - Æ æ a Ø ø
     - ن ه و ي
 
+[Test.LinesAfterEnd]
+    - Line 1
+    end
+    - This line should not be shown
+
+// Continued dialogue tests
+
+[Test.SimpleContinuedDialogue]
+    - Line 1
+    + Continued line
+    + Continued line 2
+
+[Test.ContinuedDialogueOnFirstLine]
+    + Line 1
+
+[Test.ContinuedNarration]
+    - Line 1
+    * Narration
+    + Continued Narration
+
+// Narrated dialogue tests
+
+[Test.SimpleNarratedDialogue]
+    * Line 1
+    - Line 2
+    * Line 3
+
+// Dialogue loading tests
+
+[Test.DuplicateDialogueNameInAnotherFile]
+    - First

@@ -21,7 +21,7 @@ namespace GabbyDialogue
         bool OnElseIf(string callbackName, List<string> parameters);
         bool OnElse();
         bool OnConditionalEnd();
-        void SetVersion(string version);
+        void SetVersion(System.Version version);
         void SetLanguage(string language);
     }
 }

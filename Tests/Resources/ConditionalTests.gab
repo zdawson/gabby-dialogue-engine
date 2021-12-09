@@ -1,0 +1,29 @@
+gabby 0.2
+language english
+
+[Test.TestIfElseIfElse]
+    if simpleConditional(true)
+        - Line 1
+    if simpleConditional(false)
+        - Don't show this
+    else
+        - Line 2
+    if simpleConditional(false)
+        - Don't show this
+    if simpleConditional(true)
+        - Line 3
+    else
+        - Don't show this
+
+[Test.TestEndWithinConditional]
+    if simpleConditional(false)
+        - Don't show this
+        end
+    else
+        - Line 1
+    if simpleConditional(true)
+        - Line 2
+        end
+    else
+        - Don't show this
+    - Don't show this
