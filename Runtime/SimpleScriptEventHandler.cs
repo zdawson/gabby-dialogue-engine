@@ -3,7 +3,7 @@ using System.Reflection;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace GabbyDialogue
+namespace PotassiumK.GabbyDialogue
 {
     public class SimpleScriptEventHandler
     {

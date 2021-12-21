@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 
-namespace GabbyDialogue
+namespace PotassiumK.GabbyDialogue
 {
     public abstract class SimpleDialogueSystem : IDialogueEventHandler
     {

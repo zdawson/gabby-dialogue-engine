@@ -1,7 +1,7 @@
 ﻿using System.Threading.Tasks;
 using System.Collections.Generic;
 
-namespace GabbyDialogue
+namespace PotassiumK.GabbyDialogue
 {
     public interface IDialogueEventHandler
     {

@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace GabbyDialogue
+namespace PotassiumK.GabbyDialogue
 {
     [UnityEditor.AssetImporters.ScriptedImporter(version: 3, ext: "gab")]
     public class GabbyFileImporter : UnityEditor.AssetImporters.ScriptedImporter

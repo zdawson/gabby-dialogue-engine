@@ -4,7 +4,7 @@ using System.IO;
 using System.Text.RegularExpressions;
 using UnityEngine;
 
-namespace GabbyDialogue
+namespace PotassiumK.GabbyDialogue
 {
     public class DialogParser
     {

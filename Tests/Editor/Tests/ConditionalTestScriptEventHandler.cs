@@ -1,4 +1,4 @@
-using GabbyDialogue;
+using PotassiumK.GabbyDialogue;
 
 public class ConditionalTestScriptEventHandler : AbstractScriptEventHandler
 {

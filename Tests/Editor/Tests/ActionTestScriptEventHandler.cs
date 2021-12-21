@@ -1,4 +1,4 @@
-using GabbyDialogue;
+using PotassiumK.GabbyDialogue;
 using NUnit.Framework;
 
 public class ActionTestScriptEventHandler : AbstractScriptEventHandler

@@ -1,6 +1,6 @@
 using System;
 
-namespace GabbyDialogue
+namespace PotassiumK.GabbyDialogue
 {
     [AttributeUsage(AttributeTargets.Method, AllowMultiple = false)]
     public class ConditionalHandler : Attribute

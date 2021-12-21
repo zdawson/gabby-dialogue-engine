@@ -1,8 +1,8 @@
 {
   "name": "com.gabby.gabby-dialogue-engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "displayName": "Gabby Dialogue Engine",
-  "description": "Importer and dialogue engine using the Gabby dialogue scripting language.",
+  "description": "Gabby is a language made for game dialogue. It makes it easy to build games and visual novels with dialogue at their core.",
   "unity": "2019.4",
   "keywords": [
     "dialogue",

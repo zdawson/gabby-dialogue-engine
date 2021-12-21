@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace GabbyDialogue
+namespace PotassiumK.GabbyDialogue
 {
     public class DialogueBuilder : IDialogueBuilder
     {

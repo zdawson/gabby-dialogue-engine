@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace GabbyDialogue
-{    
+namespace PotassiumK.GabbyDialogue
+{
     public enum LineType
     {
         Dialogue, // [char, text]

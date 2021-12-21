@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace GabbyDialogue
+namespace PotassiumK.GabbyDialogue
 {
     public class DialogueScript : ScriptableObject
     {

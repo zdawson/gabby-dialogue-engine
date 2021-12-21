@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using NUnit.Framework;
 using UnityEngine;
 using UnityEngine.TestTools;
-using GabbyDialogue;
+using PotassiumK.GabbyDialogue;
 
 public class GabbyTest
 {

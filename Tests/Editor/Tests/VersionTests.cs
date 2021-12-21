@@ -1,4 +1,4 @@
-using GabbyDialogue;
+using PotassiumK.GabbyDialogue;
 using NUnit.Framework;
 using System.Text.RegularExpressions;
 using UnityEngine;
