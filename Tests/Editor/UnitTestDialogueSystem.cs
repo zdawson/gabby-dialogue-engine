@@ -142,11 +142,11 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
         throw new System.NotImplementedException();
     }
 
-    public void ExpectDialogueStart()
+    public void ExpectDialogueStart(Dictionary<string, string> tags = null)
     {
         DialogueEvent dialogueEvent = NextEvent();
         Assert.AreEqual(DialogueEventType.DialogueStart, dialogueEvent.eventType, "Dialogue event type does not match.");
-        // TODO check that it's the right dialogue
+        CompareTags(tags, dialogueEvent.tags);
     }
 
     public void ExpectDialogueEnd()
@@ -162,19 +162,16 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
         DialogueLineEvent dialogueLineEvent = dialogueEvent as DialogueLineEvent;
         Assert.AreEqual(character, dialogueLineEvent.characterName, "Character name does not match.");
         Assert.AreEqual(text, dialogueLineEvent.dialogueText, "Dialogue text does not match.");
-        if (tags == null)
-        {
-            // Check that tags are empty
-            // Assert.IsTrue(dialogueLineEvent.);
-        }
+        CompareTags(tags, dialogueEvent.tags);
     }
 
-    public void ExpectContinuedLine(string continuedDialogueText)
+    public void ExpectContinuedLine(string continuedDialogueText, Dictionary<string, string> tags = null)
     {
         DialogueEvent dialogueEvent = Next();
         Assert.AreEqual(DialogueEventType.ContinuedDialogue, dialogueEvent.eventType, "Dialogue event type does not match.");
         DialogueLineEvent dialogueLineEvent = dialogueEvent as DialogueLineEvent;
         Assert.AreEqual(continuedDialogueText, dialogueLineEvent.dialogueText, "Dialogue text does not match.");
+        CompareTags(tags, dialogueEvent.tags);
     }
 
     public void ExpectJump(string jumpTarget)
@@ -192,5 +189,21 @@ public class UnitTestDialogueSystem : SimpleDialogueSystem
         DialogueActionEvent dialogueActionEvent = dialogueEvent as DialogueActionEvent;
         Assert.AreEqual(actionName, dialogueActionEvent.actionName, "Action name does not match.");
         Assert.AreEqual(actionHandlerName == "" ? actionName : actionHandlerName, handler.actionCalled, "Action handler name does not match.");
+    }
+
+    private void CompareTags(Dictionary<string, string> expected, Dictionary<string, string> actual)
+    {
+        if (expected == null)
+        {
+            return;
+        }
+
+        Assert.AreEqual(expected.Count, actual.Count, $"Incorrect number of tags.");
+
+        foreach (string key in expected.Keys)
+        {
+            Assert.IsTrue(actual.ContainsKey(key), $"Expected key missing: {key}");
+            Assert.AreEqual(expected[key], actual[key], $"Tag values do not match for key {key} : {expected[key]}, {actual[key]}");
+        }
     }
 }

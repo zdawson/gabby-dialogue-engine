@@ -40,9 +40,7 @@ namespace GabbyDialogue
 
         // TODO set regex cache size
         private static string regexValidName = @"[\w-]+(?:\s+[\w-]+)*";
-        // private static string regexEndsWithCommentOrNewline = @"\s*(?://(?:.*)|$)";
         private static string regexEndsWithCommentOrNewline = @"\s*(?:\/{2,}.*)*$";
-        // private static string regexNonCommentCharacterSequence = @"[^/]*(/?[^/]*)*";
         private static string regexNonCommentCharacterSequence = @"[^\/\n]*(?:\/[^\/\n]+)*";
         private static string regexQuotedString = @"""(?:[^""\\]|\\.)*""";
         private static string regexUnquotedString = @"[\w\-\.]+(?:\s+[\w\-\.]+)*";
@@ -456,7 +454,7 @@ namespace GabbyDialogue
         private static bool ParseTags(ParserState state)
         {
             string validateTags = @"^\s*\<" // Line designator / open angle brackets
-                                + @"(?:\s*(?<tag>[^,\s\<\>]+(?:\s+[^,\s\<\>]+)*\s*,?))+\s*" // Tags
+                                + @"(?:\s*(?<tag>[^,\s\<\>]+(?:\s+[^,\s\<\>]+)*\s*),?)+\s*" // Tags
                                 + @"\>" // Close angle brackets
                                 + regexEndsWithCommentOrNewline;
 

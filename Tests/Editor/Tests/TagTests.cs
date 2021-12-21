@@ -14,8 +14,8 @@ public class TagTests
 
         dialogueSystem.PlayDialogue("Test", "TestDialogueTags");
 
-        dialogueSystem.ExpectDialogueStart();
-        dialogueSystem.ExpectLine("Test", "Line 1", new Dictionary<string, string>(){{"tagKey", "tagValue"}, {"tagWithoutValue", ""}});
+        dialogueSystem.ExpectDialogueStart(new Dictionary<string, string>(){{"testTag", ""}, {"anotherTag", ""}});
+        dialogueSystem.ExpectLine("Test", "Line 1");
         dialogueSystem.ExpectDialogueEnd();
     }
 
@@ -28,7 +28,7 @@ public class TagTests
 
         dialogueSystem.ExpectDialogueStart();
         dialogueSystem.ExpectLine("Test", "Line 1", new Dictionary<string, string>(){{"testTag", ""}});
-        dialogueSystem.ExpectLine("Test", "Line 2", new Dictionary<string, string>(){{"secondTag", ""}, {"thirdTag", ""}});
+        dialogueSystem.ExpectContinuedLine("Line 2", new Dictionary<string, string>(){{"secondTag", ""}, {"thirdTag", ""}});
         dialogueSystem.ExpectDialogueEnd();
     }
 
@@ -68,8 +68,7 @@ public class TagTests
         dialogueSystem.ExpectLine("Test", "Line 1", new Dictionary<string, string>()
         {
             {"stringTag", "value"},
-            {"stringTagWithSymbols", "a,b. <>"},
-            {"boolTag", " false"},
+            {"boolTag", "false"},
             {"intTag", "0"},
             {"floatTag", "0.0"}
         });

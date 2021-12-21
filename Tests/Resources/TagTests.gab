@@ -22,5 +22,5 @@ language english
     - Line 2
 
 [Test.TestTagValues]
-    <stringTag:value, stringTagWithSymbols:"a,b. <>", boolTag: false, intTag:0, floatTag:0.0>
+    <stringTag:value, boolTag: false, intTag:0, floatTag:0.0>
     - Line 1
